@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+Disallow: /pagar/
+Disallow: /grupos

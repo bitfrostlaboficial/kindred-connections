@@ -9,38 +9,194 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as PagarTokenRouteImport } from './routes/pagar.$token'
+import { Route as ApiChargesRouteImport } from './routes/api/charges'
+import { Route as AuthenticatedGruposRouteImport } from './routes/_authenticated/grupos'
+import { Route as AuthenticatedGruposIndexRouteImport } from './routes/_authenticated/grupos.index'
+import { Route as AuthenticatedGruposGroupIdRouteImport } from './routes/_authenticated/grupos.$groupId'
+import { Route as ApiPublicWebhooksMercadopagoRouteImport } from './routes/api/public/webhooks/mercadopago'
+import { Route as ApiOauthMercadopagoStartRouteImport } from './routes/api/oauth/mercadopago/start'
+import { Route as ApiOauthMercadopagoCallbackRouteImport } from './routes/api/oauth/mercadopago/callback'
+import { Route as AuthenticatedGruposGroupIdCobrarRouteImport } from './routes/_authenticated/grupos.$groupId_.cobrar'
 
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PagarTokenRoute = PagarTokenRouteImport.update({
+  id: '/pagar/$token',
+  path: '/pagar/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiChargesRoute = ApiChargesRouteImport.update({
+  id: '/api/charges',
+  path: '/api/charges',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedGruposRoute = AuthenticatedGruposRouteImport.update({
+  id: '/grupos',
+  path: '/grupos',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedGruposIndexRoute =
+  AuthenticatedGruposIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedGruposRoute,
+  } as any)
+const AuthenticatedGruposGroupIdRoute =
+  AuthenticatedGruposGroupIdRouteImport.update({
+    id: '/$groupId',
+    path: '/$groupId',
+    getParentRoute: () => AuthenticatedGruposRoute,
+  } as any)
+const ApiPublicWebhooksMercadopagoRoute =
+  ApiPublicWebhooksMercadopagoRouteImport.update({
+    id: '/api/public/webhooks/mercadopago',
+    path: '/api/public/webhooks/mercadopago',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiOauthMercadopagoStartRoute =
+  ApiOauthMercadopagoStartRouteImport.update({
+    id: '/api/oauth/mercadopago/start',
+    path: '/api/oauth/mercadopago/start',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiOauthMercadopagoCallbackRoute =
+  ApiOauthMercadopagoCallbackRouteImport.update({
+    id: '/api/oauth/mercadopago/callback',
+    path: '/api/oauth/mercadopago/callback',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const AuthenticatedGruposGroupIdCobrarRoute =
+  AuthenticatedGruposGroupIdCobrarRouteImport.update({
+    id: '/$groupId_/cobrar',
+    path: '/$groupId/cobrar',
+    getParentRoute: () => AuthenticatedGruposRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/grupos': typeof AuthenticatedGruposRouteWithChildren
+  '/api/charges': typeof ApiChargesRoute
+  '/pagar/$token': typeof PagarTokenRoute
+  '/grupos/$groupId': typeof AuthenticatedGruposGroupIdRoute
+  '/grupos/': typeof AuthenticatedGruposIndexRoute
+  '/grupos/$groupId/cobrar': typeof AuthenticatedGruposGroupIdCobrarRoute
+  '/api/oauth/mercadopago/callback': typeof ApiOauthMercadopagoCallbackRoute
+  '/api/oauth/mercadopago/start': typeof ApiOauthMercadopagoStartRoute
+  '/api/public/webhooks/mercadopago': typeof ApiPublicWebhooksMercadopagoRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/api/charges': typeof ApiChargesRoute
+  '/pagar/$token': typeof PagarTokenRoute
+  '/grupos/$groupId': typeof AuthenticatedGruposGroupIdRoute
+  '/grupos': typeof AuthenticatedGruposIndexRoute
+  '/grupos/$groupId/cobrar': typeof AuthenticatedGruposGroupIdCobrarRoute
+  '/api/oauth/mercadopago/callback': typeof ApiOauthMercadopagoCallbackRoute
+  '/api/oauth/mercadopago/start': typeof ApiOauthMercadopagoStartRoute
+  '/api/public/webhooks/mercadopago': typeof ApiPublicWebhooksMercadopagoRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/auth': typeof AuthRoute
+  '/_authenticated/grupos': typeof AuthenticatedGruposRouteWithChildren
+  '/api/charges': typeof ApiChargesRoute
+  '/pagar/$token': typeof PagarTokenRoute
+  '/_authenticated/grupos/$groupId': typeof AuthenticatedGruposGroupIdRoute
+  '/_authenticated/grupos/': typeof AuthenticatedGruposIndexRoute
+  '/_authenticated/grupos/$groupId_/cobrar': typeof AuthenticatedGruposGroupIdCobrarRoute
+  '/api/oauth/mercadopago/callback': typeof ApiOauthMercadopagoCallbackRoute
+  '/api/oauth/mercadopago/start': typeof ApiOauthMercadopagoStartRoute
+  '/api/public/webhooks/mercadopago': typeof ApiPublicWebhooksMercadopagoRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/grupos'
+    | '/api/charges'
+    | '/pagar/$token'
+    | '/grupos/$groupId'
+    | '/grupos/'
+    | '/grupos/$groupId/cobrar'
+    | '/api/oauth/mercadopago/callback'
+    | '/api/oauth/mercadopago/start'
+    | '/api/public/webhooks/mercadopago'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/auth'
+    | '/api/charges'
+    | '/pagar/$token'
+    | '/grupos/$groupId'
+    | '/grupos'
+    | '/grupos/$groupId/cobrar'
+    | '/api/oauth/mercadopago/callback'
+    | '/api/oauth/mercadopago/start'
+    | '/api/public/webhooks/mercadopago'
+  id:
+    | '__root__'
+    | '/'
+    | '/_authenticated'
+    | '/auth'
+    | '/_authenticated/grupos'
+    | '/api/charges'
+    | '/pagar/$token'
+    | '/_authenticated/grupos/$groupId'
+    | '/_authenticated/grupos/'
+    | '/_authenticated/grupos/$groupId_/cobrar'
+    | '/api/oauth/mercadopago/callback'
+    | '/api/oauth/mercadopago/start'
+    | '/api/public/webhooks/mercadopago'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  AuthRoute: typeof AuthRoute
+  ApiChargesRoute: typeof ApiChargesRoute
+  PagarTokenRoute: typeof PagarTokenRoute
+  ApiOauthMercadopagoCallbackRoute: typeof ApiOauthMercadopagoCallbackRoute
+  ApiOauthMercadopagoStartRoute: typeof ApiOauthMercadopagoStartRoute
+  ApiPublicWebhooksMercadopagoRoute: typeof ApiPublicWebhooksMercadopagoRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,22 +204,108 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/pagar/$token': {
+      id: '/pagar/$token'
+      path: '/pagar/$token'
+      fullPath: '/pagar/$token'
+      preLoaderRoute: typeof PagarTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/charges': {
+      id: '/api/charges'
+      path: '/api/charges'
+      fullPath: '/api/charges'
+      preLoaderRoute: typeof ApiChargesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/grupos': {
+      id: '/_authenticated/grupos'
+      path: '/grupos'
+      fullPath: '/grupos'
+      preLoaderRoute: typeof AuthenticatedGruposRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/grupos/': {
+      id: '/_authenticated/grupos/'
+      path: '/'
+      fullPath: '/grupos/'
+      preLoaderRoute: typeof AuthenticatedGruposIndexRouteImport
+      parentRoute: typeof AuthenticatedGruposRoute
+    }
+    '/_authenticated/grupos/$groupId': {
+      id: '/_authenticated/grupos/$groupId'
+      path: '/$groupId'
+      fullPath: '/grupos/$groupId'
+      preLoaderRoute: typeof AuthenticatedGruposGroupIdRouteImport
+      parentRoute: typeof AuthenticatedGruposRoute
+    }
+    '/api/public/webhooks/mercadopago': {
+      id: '/api/public/webhooks/mercadopago'
+      path: '/api/public/webhooks/mercadopago'
+      fullPath: '/api/public/webhooks/mercadopago'
+      preLoaderRoute: typeof ApiPublicWebhooksMercadopagoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/oauth/mercadopago/start': {
+      id: '/api/oauth/mercadopago/start'
+      path: '/api/oauth/mercadopago/start'
+      fullPath: '/api/oauth/mercadopago/start'
+      preLoaderRoute: typeof ApiOauthMercadopagoStartRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/oauth/mercadopago/callback': {
+      id: '/api/oauth/mercadopago/callback'
+      path: '/api/oauth/mercadopago/callback'
+      fullPath: '/api/oauth/mercadopago/callback'
+      preLoaderRoute: typeof ApiOauthMercadopagoCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/grupos/$groupId_/cobrar': {
+      id: '/_authenticated/grupos/$groupId_/cobrar'
+      path: '/$groupId/cobrar'
+      fullPath: '/grupos/$groupId/cobrar'
+      preLoaderRoute: typeof AuthenticatedGruposGroupIdCobrarRouteImport
+      parentRoute: typeof AuthenticatedGruposRoute
+    }
   }
 }
 
+interface AuthenticatedGruposRouteChildren {
+  AuthenticatedGruposGroupIdRoute: typeof AuthenticatedGruposGroupIdRoute
+  AuthenticatedGruposIndexRoute: typeof AuthenticatedGruposIndexRoute
+  AuthenticatedGruposGroupIdCobrarRoute: typeof AuthenticatedGruposGroupIdCobrarRoute
+}
+
+const AuthenticatedGruposRouteChildren: AuthenticatedGruposRouteChildren = {
+  AuthenticatedGruposGroupIdRoute: AuthenticatedGruposGroupIdRoute,
+  AuthenticatedGruposIndexRoute: AuthenticatedGruposIndexRoute,
+  AuthenticatedGruposGroupIdCobrarRoute: AuthenticatedGruposGroupIdCobrarRoute,
+}
+
+const AuthenticatedGruposRouteWithChildren =
+  AuthenticatedGruposRoute._addFileChildren(AuthenticatedGruposRouteChildren)
+
+interface AuthenticatedRouteRouteChildren {
+  AuthenticatedGruposRoute: typeof AuthenticatedGruposRouteWithChildren
+}
+
+const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedGruposRoute: AuthenticatedGruposRouteWithChildren,
+}
+
+const AuthenticatedRouteRouteWithChildren =
+  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  AuthRoute: AuthRoute,
+  ApiChargesRoute: ApiChargesRoute,
+  PagarTokenRoute: PagarTokenRoute,
+  ApiOauthMercadopagoCallbackRoute: ApiOauthMercadopagoCallbackRoute,
+  ApiOauthMercadopagoStartRoute: ApiOauthMercadopagoStartRoute,
+  ApiPublicWebhooksMercadopagoRoute: ApiPublicWebhooksMercadopagoRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
