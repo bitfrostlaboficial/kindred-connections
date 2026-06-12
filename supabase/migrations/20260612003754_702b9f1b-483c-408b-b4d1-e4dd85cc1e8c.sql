@@ -1,0 +1,17 @@
+CREATE TABLE IF NOT EXISTS public.profiles ( id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE, full_name TEXT, avatar_url TEXT, created_at TIMESTAMPTZ NOT NULL DEFAULT now(), updated_at TIMESTAMPTZ NOT NULL DEFAULT now() ); 
+CREATE TABLE IF NOT EXISTS public.groups ( id UUID PRIMARY KEY DEFAULT gen_random_uuid(), name TEXT NOT NULL, description TEXT, default_monthly_fee NUMERIC(10,2), pix_key TEXT, pix_recipient_name TEXT, created_by UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE, created_at TIMESTAMPTZ NOT NULL DEFAULT now(), updated_at TIMESTAMPTZ NOT NULL DEFAULT now() );
+CREATE TABLE IF NOT EXISTS public.group_members ( id UUID PRIMARY KEY DEFAULT gen_random_uuid(), group_id UUID NOT NULL REFERENCES public.groups(id) ON DELETE CASCADE, user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE, role TEXT NOT NULL DEFAULT 'admin', created_at TIMESTAMPTZ NOT NULL DEFAULT now(), UNIQUE(group_id, user_id) );
+CREATE TABLE IF NOT EXISTS public.participants ( id UUID PRIMARY KEY DEFAULT gen_random_uuid(), group_id UUID NOT NULL REFERENCES public.groups(id) ON DELETE CASCADE, name TEXT NOT NULL, phone TEXT, email TEXT, position TEXT, jersey_number INT, type TEXT NOT NULL DEFAULT 'mensalista', is_active BOOLEAN NOT NULL DEFAULT TRUE, created_at TIMESTAMPTZ NOT NULL DEFAULT now(), updated_at TIMESTAMPTZ NOT NULL DEFAULT now() );
+CREATE TABLE IF NOT EXISTS public.payment_provider_configs ( id UUID PRIMARY KEY DEFAULT gen_random_uuid(), group_id UUID NOT NULL REFERENCES public.groups(id) ON DELETE CASCADE, provider TEXT NOT NULL, is_active BOOLEAN NOT NULL DEFAULT TRUE, config JSONB NOT NULL DEFAULT '{}'::jsonb, created_at TIMESTAMPTZ NOT NULL DEFAULT now(), updated_at TIMESTAMPTZ NOT NULL DEFAULT now(), UNIQUE(group_id, provider) );
+CREATE TABLE IF NOT EXISTS public.charges ( id UUID PRIMARY KEY DEFAULT gen_random_uuid(), group_id UUID NOT NULL REFERENCES public.groups(id) ON DELETE CASCADE, participant_id UUID NOT NULL REFERENCES public.participants(id) ON DELETE CASCADE, description TEXT NOT NULL, amount NUMERIC(10,2) NOT NULL, due_date DATE NOT NULL, status TEXT NOT NULL DEFAULT 'pendente', provider TEXT NOT NULL DEFAULT 'pix_manual', provider_charge_id TEXT, payment_link TEXT, pix_copy_paste TEXT, public_token TEXT NOT NULL DEFAULT encode(gen_random_bytes(16), 'hex') UNIQUE, paid_at TIMESTAMPTZ, paid_amount NUMERIC(10,2), metadata JSONB NOT NULL DEFAULT '{}'::jsonb, created_by UUID REFERENCES auth.users(id), created_at TIMESTAMPTZ NOT NULL DEFAULT now(), updated_at TIMESTAMPTZ NOT NULL DEFAULT now() );
+CREATE TABLE IF NOT EXISTS public.payment_events ( id UUID PRIMARY KEY DEFAULT gen_random_uuid(), charge_id UUID REFERENCES public.charges(id) ON DELETE CASCADE, provider TEXT NOT NULL, event_type TEXT NOT NULL, payload JSONB NOT NULL DEFAULT '{}'::jsonb, created_at TIMESTAMPTZ NOT NULL DEFAULT now() );
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO authenticated;
+GRANT ALL ON ALL TABLES IN SCHEMA public TO service_role;
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.groups ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.group_members ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.participants ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.payment_provider_configs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.charges ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.payment_events ENABLE ROW LEVEL SECURITY;

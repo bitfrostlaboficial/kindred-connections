@@ -14,7 +14,299 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      charges: {
+        Row: {
+          amount: number
+          created_at: string
+          created_by: string | null
+          description: string
+          due_date: string
+          group_id: string
+          id: string
+          metadata: Json
+          paid_amount: number | null
+          paid_at: string | null
+          participant_id: string
+          payment_link: string | null
+          pix_copy_paste: string | null
+          provider: string
+          provider_charge_id: string | null
+          public_token: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          created_by?: string | null
+          description: string
+          due_date: string
+          group_id: string
+          id?: string
+          metadata?: Json
+          paid_amount?: number | null
+          paid_at?: string | null
+          participant_id: string
+          payment_link?: string | null
+          pix_copy_paste?: string | null
+          provider?: string
+          provider_charge_id?: string | null
+          public_token?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          due_date?: string
+          group_id?: string
+          id?: string
+          metadata?: Json
+          paid_amount?: number | null
+          paid_at?: string | null
+          participant_id?: string
+          payment_link?: string | null
+          pix_copy_paste?: string | null
+          provider?: string
+          provider_charge_id?: string | null
+          public_token?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "charges_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "charges_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "participants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      group_members: {
+        Row: {
+          created_at: string
+          group_id: string
+          id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          group_id: string
+          id?: string
+          role?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          group_id?: string
+          id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_members_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      groups: {
+        Row: {
+          created_at: string
+          created_by: string
+          default_monthly_fee: number | null
+          description: string | null
+          id: string
+          name: string
+          pix_key: string | null
+          pix_recipient_name: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          default_monthly_fee?: number | null
+          description?: string | null
+          id?: string
+          name: string
+          pix_key?: string | null
+          pix_recipient_name?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          default_monthly_fee?: number | null
+          description?: string | null
+          id?: string
+          name?: string
+          pix_key?: string | null
+          pix_recipient_name?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      participants: {
+        Row: {
+          created_at: string
+          email: string | null
+          group_id: string
+          id: string
+          is_active: boolean
+          jersey_number: number | null
+          name: string
+          phone: string | null
+          position: string | null
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          group_id: string
+          id?: string
+          is_active?: boolean
+          jersey_number?: number | null
+          name: string
+          phone?: string | null
+          position?: string | null
+          type?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          group_id?: string
+          id?: string
+          is_active?: boolean
+          jersey_number?: number | null
+          name?: string
+          phone?: string | null
+          position?: string | null
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "participants_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payment_events: {
+        Row: {
+          charge_id: string | null
+          created_at: string
+          event_type: string
+          id: string
+          payload: Json
+          provider: string
+        }
+        Insert: {
+          charge_id?: string | null
+          created_at?: string
+          event_type: string
+          id?: string
+          payload?: Json
+          provider: string
+        }
+        Update: {
+          charge_id?: string | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          payload?: Json
+          provider?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_events_charge_id_fkey"
+            columns: ["charge_id"]
+            isOneToOne: false
+            referencedRelation: "charges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payment_provider_configs: {
+        Row: {
+          config: Json
+          created_at: string
+          group_id: string
+          id: string
+          is_active: boolean
+          provider: string
+          updated_at: string
+        }
+        Insert: {
+          config?: Json
+          created_at?: string
+          group_id: string
+          id?: string
+          is_active?: boolean
+          provider: string
+          updated_at?: string
+        }
+        Update: {
+          config?: Json
+          created_at?: string
+          group_id?: string
+          id?: string
+          is_active?: boolean
+          provider?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_provider_configs_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          full_name: string | null
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          full_name?: string | null
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          full_name?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
