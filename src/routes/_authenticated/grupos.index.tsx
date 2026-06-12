@@ -50,6 +50,8 @@ function GroupsPage() {
       default_monthly_fee: monthlyFee ? Number(monthlyFee) : null,
       created_by: user.id,
     };
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+    console.log("[grupos] debug auth", { user: userData.user, error: userError });
     console.log("[grupos] insert", { uid: user.id, payload });
     const { data, error } = await supabase.from("groups").insert(payload).select().single();
     if (error) {
