@@ -210,6 +210,57 @@ export type Database = {
           },
         ]
       }
+      payment_accounts: {
+        Row: {
+          access_token: string
+          account_label: string | null
+          created_at: string
+          expires_at: string | null
+          external_user_id: string
+          id: string
+          is_active: boolean
+          provider: string
+          public_key: string | null
+          raw: Json | null
+          refresh_token: string | null
+          scope: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token: string
+          account_label?: string | null
+          created_at?: string
+          expires_at?: string | null
+          external_user_id: string
+          id?: string
+          is_active?: boolean
+          provider: string
+          public_key?: string | null
+          raw?: Json | null
+          refresh_token?: string | null
+          scope?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token?: string
+          account_label?: string | null
+          created_at?: string
+          expires_at?: string | null
+          external_user_id?: string
+          id?: string
+          is_active?: boolean
+          provider?: string
+          public_key?: string | null
+          raw?: Json | null
+          refresh_token?: string | null
+          scope?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       payment_events: {
         Row: {
           charge_id: string | null
@@ -252,6 +303,7 @@ export type Database = {
           group_id: string
           id: string
           is_active: boolean
+          payment_account_id: string | null
           provider: string
           updated_at: string
         }
@@ -261,6 +313,7 @@ export type Database = {
           group_id: string
           id?: string
           is_active?: boolean
+          payment_account_id?: string | null
           provider: string
           updated_at?: string
         }
@@ -270,6 +323,7 @@ export type Database = {
           group_id?: string
           id?: string
           is_active?: boolean
+          payment_account_id?: string | null
           provider?: string
           updated_at?: string
         }
@@ -279,6 +333,13 @@ export type Database = {
             columns: ["group_id"]
             isOneToOne: false
             referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_provider_configs_payment_account_id_fkey"
+            columns: ["payment_account_id"]
+            isOneToOne: false
+            referencedRelation: "payment_accounts"
             referencedColumns: ["id"]
           },
         ]
