@@ -1,8 +1,10 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { buildWaLink, buildChargeMessage } from "@/lib/whatsapp";
+import { connectMercadoPagoManual } from "@/lib/payments/mp-connect.functions";
 
 export const Route = createFileRoute("/_authenticated/grupos/$groupId")({
   head: () => ({ meta: [{ title: "Súmula — Peladeiro" }] }),
@@ -24,6 +26,10 @@ function GroupDashboard() {
   const [charges, setCharges] = useState<Charge[]>([]);
   const [ppc, setPpc] = useState<PPCInfo | null>(null);
   const [connecting, setConnecting] = useState(false);
+  const [showMPModal, setShowMPModal] = useState(false);
+  const [mpToken, setMpToken] = useState("");
+  const [mpPublicKey, setMpPublicKey] = useState("");
+  const connectMPFn = useServerFn(connectMercadoPagoManual);
   const [loading, setLoading] = useState(true);
   const [showAddPlayer, setShowAddPlayer] = useState(false);
   const [pName, setPName] = useState("");
@@ -107,20 +113,24 @@ function GroupDashboard() {
     }
   }, [search.mp_connected, groupId, navigate]);
 
-  const connectMP = async () => {
+  const openMPModal = () => {
+    setMpToken("");
+    setMpPublicKey("");
+    setShowMPModal(true);
+  };
+  const submitMP = async (e: React.FormEvent) => {
+    e.preventDefault();
     setConnecting(true);
     try {
-      const { data: s } = await supabase.auth.getSession();
-      const tok = s.session?.access_token;
-      if (!tok) throw new Error("Sessão expirada");
-      const res = await fetch(`/api/oauth/mercadopago/start?group_id=${encodeURIComponent(groupId)}`, {
-        headers: { Authorization: `Bearer ${tok}` },
+      const res = await connectMPFn({
+        data: { groupId, accessToken: mpToken, publicKey: mpPublicKey || undefined },
       });
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(json?.error ?? `HTTP ${res.status}`);
-      window.location.href = json.authorizeUrl;
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Falha ao iniciar OAuth");
+      toast.success(`Mercado Pago conectado (${res.label})`);
+      setShowMPModal(false);
+      await loadFinance();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Falha ao conectar Mercado Pago");
+    } finally {
       setConnecting(false);
     }
   };
@@ -376,24 +386,62 @@ function GroupDashboard() {
                 </div>
                 <p className="text-[10px] text-faded">Última sincronização: {new Date(ppc.account.updated_at).toLocaleString("pt-BR")}</p>
                 <div className="flex gap-2 pt-1">
-                  <button onClick={connectMP} disabled={connecting} className="flex-1 py-1.5 text-[10px] font-bold uppercase tracking-widest border border-ink/20 hover:bg-ink hover:text-paper transition-colors disabled:opacity-50">Reconectar</button>
+                  <button onClick={openMPModal} className="flex-1 py-1.5 text-[10px] font-bold uppercase tracking-widest border border-ink/20 hover:bg-ink hover:text-paper transition-colors">Reconectar</button>
                   <button onClick={disconnectMP} className="flex-1 py-1.5 text-[10px] font-bold uppercase tracking-widest border border-destructive text-destructive hover:bg-destructive hover:text-paper transition-colors">Desvincular</button>
                 </div>
               </>
             ) : ppc?.payment_account_id ? (
               <>
                 <p className="text-xs text-faded">Conta vinculada existe mas você não é o dono — peça ao organizador para reconectar.</p>
-                <button onClick={connectMP} disabled={connecting} className="w-full py-2 text-xs font-bold uppercase tracking-widest border-2 border-pitch text-pitch hover:bg-pitch hover:text-paper transition-colors disabled:opacity-50">{connecting ? "Abrindo..." : "Conectar minha conta MP"}</button>
+                <button onClick={openMPModal} className="w-full py-2 text-xs font-bold uppercase tracking-widest border-2 border-pitch text-pitch hover:bg-pitch hover:text-paper transition-colors">Conectar minha conta MP</button>
               </>
             ) : (
               <>
                 <p className="text-xs text-faded">Conecte sua conta para que cobranças vão direto pra você — a plataforma não toca no dinheiro.</p>
-                <button onClick={connectMP} disabled={connecting} className="w-full py-2 text-xs font-bold uppercase tracking-widest bg-[#009ee3] text-white hover:opacity-90 transition-opacity disabled:opacity-50">{connecting ? "Abrindo..." : "Conectar Mercado Pago"}</button>
+                <button onClick={openMPModal} className="w-full py-2 text-xs font-bold uppercase tracking-widest bg-[#009ee3] text-white hover:opacity-90 transition-opacity">Conectar Mercado Pago</button>
               </>
             )}
             <p className="text-[10px] text-faded pt-2 border-t border-ink/10">Outros gateways (Stripe, Asaas, InfinitePay) chegam em breve com a mesma arquitetura.</p>
           </div>
         </aside>
+
+        {showMPModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/60 p-4" onClick={() => !connecting && setShowMPModal(false)}>
+            <form onSubmit={submitMP} onClick={(e) => e.stopPropagation()} className="bg-paper border-2 border-ink max-w-md w-full p-6 space-y-4">
+              <div>
+                <h3 className="font-display text-2xl uppercase">Conectar Mercado Pago</h3>
+                <p className="text-xs text-faded mt-1">Cole o <strong>Access Token</strong> da sua aplicação MP. Pegue em <a href="https://www.mercadopago.com.br/developers/panel/app" target="_blank" rel="noreferrer" className="underline">Painel de Desenvolvedores → sua aplicação → Credenciais de produção</a>.</p>
+              </div>
+              <label className="block space-y-1">
+                <span className="text-[10px] font-bold uppercase tracking-widest">Access Token *</span>
+                <input
+                  type="password"
+                  required
+                  autoFocus
+                  value={mpToken}
+                  onChange={(e) => setMpToken(e.target.value)}
+                  placeholder="APP_USR-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                  className="w-full border border-ink/30 px-3 py-2 font-mono text-xs bg-white"
+                />
+              </label>
+              <label className="block space-y-1">
+                <span className="text-[10px] font-bold uppercase tracking-widest">Public Key (opcional)</span>
+                <input
+                  type="text"
+                  value={mpPublicKey}
+                  onChange={(e) => setMpPublicKey(e.target.value)}
+                  placeholder="APP_USR-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                  className="w-full border border-ink/30 px-3 py-2 font-mono text-xs bg-white"
+                />
+              </label>
+              <p className="text-[10px] text-faded">Validamos o token chamando <code>/users/me</code> do Mercado Pago antes de salvar. Nada fica gravado se o token for inválido.</p>
+              <div className="flex gap-2 pt-2">
+                <button type="button" onClick={() => setShowMPModal(false)} disabled={connecting} className="flex-1 py-2 border border-ink/30 text-xs font-bold uppercase tracking-widest disabled:opacity-50">Cancelar</button>
+                <button type="submit" disabled={connecting || !mpToken} className="flex-1 py-2 bg-[#009ee3] text-white text-xs font-bold uppercase tracking-widest disabled:opacity-50">{connecting ? "Validando..." : "Conectar"}</button>
+              </div>
+            </form>
+          </div>
+        )}
       </main>
     </main>
   );
