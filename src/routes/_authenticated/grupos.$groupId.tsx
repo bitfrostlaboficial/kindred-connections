@@ -163,8 +163,6 @@ function GroupDashboard() {
     toast.success("Conta desvinculada");
     loadFinance();
   };
-    loadFinance();
-  };
 
   const addPlayer = async (e: React.FormEvent) => {
     e.preventDefault();
