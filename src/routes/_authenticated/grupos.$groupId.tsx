@@ -5,6 +5,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { buildWaLink, buildChargeMessage } from "@/lib/whatsapp";
 import { connectMercadoPagoManual } from "@/lib/payments/mp-connect.functions";
+import { connectStripeManual } from "@/lib/payments/stripe-connect.functions";
+
+type ProviderId = "mercado_pago" | "stripe";
 
 export const Route = createFileRoute("/_authenticated/grupos/$groupId")({
   head: () => ({ meta: [{ title: "Súmula — Peladeiro" }] }),
@@ -24,12 +27,16 @@ function GroupDashboard() {
   const [group, setGroup] = useState<Group | null>(null);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [charges, setCharges] = useState<Charge[]>([]);
-  const [ppc, setPpc] = useState<PPCInfo | null>(null);
+  const [ppc, setPpc] = useState<Record<ProviderId, PPCInfo | null>>({ mercado_pago: null, stripe: null });
   const [connecting, setConnecting] = useState(false);
-  const [showMPModal, setShowMPModal] = useState(false);
+  const [openModal, setOpenModal] = useState<ProviderId | null>(null);
   const [mpToken, setMpToken] = useState("");
   const [mpPublicKey, setMpPublicKey] = useState("");
+  const [stripeSk, setStripeSk] = useState("");
+  const [stripePk, setStripePk] = useState("");
+  const [stripeWh, setStripeWh] = useState("");
   const connectMPFn = useServerFn(connectMercadoPagoManual);
+  const connectStripeFn = useServerFn(connectStripeManual);
   const [loading, setLoading] = useState(true);
   const [showAddPlayer, setShowAddPlayer] = useState(false);
   const [pName, setPName] = useState("");
@@ -90,20 +97,23 @@ function GroupDashboard() {
     setLoading(false);
   };
   const loadFinance = async () => {
-    const { data: cfg } = await supabase
+    const { data: cfgs } = await supabase
       .from("payment_provider_configs")
-      .select("payment_account_id")
+      .select("provider, payment_account_id")
       .eq("group_id", groupId)
-      .eq("provider", "mercado_pago")
-      .maybeSingle();
-    const accountId = (cfg as any)?.payment_account_id ?? null;
-    if (!accountId) { setPpc({ payment_account_id: null, account: null }); return; }
-    const { data: acct } = await supabase
-      .from("payment_accounts" as any)
-      .select("id, account_label, external_user_id, is_active, expires_at, updated_at")
-      .eq("id", accountId)
-      .maybeSingle();
-    setPpc({ payment_account_id: accountId, account: (acct as any) ?? null });
+      .in("provider", ["mercado_pago", "stripe"]);
+    const next: Record<ProviderId, PPCInfo | null> = { mercado_pago: null, stripe: null };
+    for (const row of (cfgs ?? []) as Array<{ provider: ProviderId; payment_account_id: string | null }>) {
+      const accountId = row.payment_account_id ?? null;
+      if (!accountId) { next[row.provider] = { payment_account_id: null, account: null }; continue; }
+      const { data: acct } = await supabase
+        .from("payment_accounts" as any)
+        .select("id, account_label, external_user_id, is_active, expires_at, updated_at")
+        .eq("id", accountId)
+        .maybeSingle();
+      next[row.provider] = { payment_account_id: accountId, account: (acct as any) ?? null };
+    }
+    setPpc(next);
   };
   useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [groupId]);
   useEffect(() => {
@@ -113,36 +123,46 @@ function GroupDashboard() {
     }
   }, [search.mp_connected, groupId, navigate]);
 
-  const openMPModal = () => {
-    setMpToken("");
-    setMpPublicKey("");
-    setShowMPModal(true);
-  };
+  const openMPModal = () => { setMpToken(""); setMpPublicKey(""); setOpenModal("mercado_pago"); };
+  const openStripeModal = () => { setStripeSk(""); setStripePk(""); setStripeWh(""); setOpenModal("stripe"); };
+  const closeModal = () => { if (!connecting) setOpenModal(null); };
+
   const submitMP = async (e: React.FormEvent) => {
     e.preventDefault();
     setConnecting(true);
     try {
-      const res = await connectMPFn({
-        data: { groupId, accessToken: mpToken, publicKey: mpPublicKey || undefined },
-      });
+      const res = await connectMPFn({ data: { groupId, accessToken: mpToken, publicKey: mpPublicKey || undefined } });
       toast.success(`Mercado Pago conectado (${res.label})`);
-      setShowMPModal(false);
+      setOpenModal(null);
       await loadFinance();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Falha ao conectar Mercado Pago");
-    } finally {
-      setConnecting(false);
-    }
+    } finally { setConnecting(false); }
   };
-  const disconnectMP = async () => {
-    if (!window.confirm("Desvincular a conta Mercado Pago deste grupo? Cobranças existentes continuam.")) return;
+  const submitStripe = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setConnecting(true);
+    try {
+      const res = await connectStripeFn({ data: { groupId, secretKey: stripeSk, publishableKey: stripePk || undefined, webhookSecret: stripeWh || undefined } });
+      toast.success(`Stripe conectado (${res.label})`);
+      setOpenModal(null);
+      await loadFinance();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Falha ao conectar Stripe");
+    } finally { setConnecting(false); }
+  };
+  const disconnect = async (provider: ProviderId) => {
+    const label = provider === "stripe" ? "Stripe" : "Mercado Pago";
+    if (!window.confirm(`Desvincular a conta ${label} deste grupo? Cobranças existentes continuam.`)) return;
     const { error } = await supabase
       .from("payment_provider_configs")
       .update({ payment_account_id: null, is_active: false } as any)
       .eq("group_id", groupId)
-      .eq("provider", "mercado_pago");
+      .eq("provider", provider);
     if (error) return toast.error(error.message);
     toast.success("Conta desvinculada");
+    loadFinance();
+  };
     loadFinance();
   };
 
