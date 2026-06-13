@@ -5,6 +5,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { buildWaLink, buildChargeMessage } from "@/lib/whatsapp";
 import { connectMercadoPagoManual } from "@/lib/payments/mp-connect.functions";
+import { connectStripeManual } from "@/lib/payments/stripe-connect.functions";
+
+type ProviderId = "mercado_pago" | "stripe";
 
 export const Route = createFileRoute("/_authenticated/grupos/$groupId")({
   head: () => ({ meta: [{ title: "Súmula — Peladeiro" }] }),
@@ -24,12 +27,16 @@ function GroupDashboard() {
   const [group, setGroup] = useState<Group | null>(null);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [charges, setCharges] = useState<Charge[]>([]);
-  const [ppc, setPpc] = useState<PPCInfo | null>(null);
+  const [ppc, setPpc] = useState<Record<ProviderId, PPCInfo | null>>({ mercado_pago: null, stripe: null });
   const [connecting, setConnecting] = useState(false);
-  const [showMPModal, setShowMPModal] = useState(false);
+  const [openModal, setOpenModal] = useState<ProviderId | null>(null);
   const [mpToken, setMpToken] = useState("");
   const [mpPublicKey, setMpPublicKey] = useState("");
+  const [stripeSk, setStripeSk] = useState("");
+  const [stripePk, setStripePk] = useState("");
+  const [stripeWh, setStripeWh] = useState("");
   const connectMPFn = useServerFn(connectMercadoPagoManual);
+  const connectStripeFn = useServerFn(connectStripeManual);
   const [loading, setLoading] = useState(true);
   const [showAddPlayer, setShowAddPlayer] = useState(false);
   const [pName, setPName] = useState("");
@@ -90,20 +97,23 @@ function GroupDashboard() {
     setLoading(false);
   };
   const loadFinance = async () => {
-    const { data: cfg } = await supabase
+    const { data: cfgs } = await supabase
       .from("payment_provider_configs")
-      .select("payment_account_id")
+      .select("provider, payment_account_id")
       .eq("group_id", groupId)
-      .eq("provider", "mercado_pago")
-      .maybeSingle();
-    const accountId = (cfg as any)?.payment_account_id ?? null;
-    if (!accountId) { setPpc({ payment_account_id: null, account: null }); return; }
-    const { data: acct } = await supabase
-      .from("payment_accounts" as any)
-      .select("id, account_label, external_user_id, is_active, expires_at, updated_at")
-      .eq("id", accountId)
-      .maybeSingle();
-    setPpc({ payment_account_id: accountId, account: (acct as any) ?? null });
+      .in("provider", ["mercado_pago", "stripe"]);
+    const next: Record<ProviderId, PPCInfo | null> = { mercado_pago: null, stripe: null };
+    for (const row of (cfgs ?? []) as Array<{ provider: ProviderId; payment_account_id: string | null }>) {
+      const accountId = row.payment_account_id ?? null;
+      if (!accountId) { next[row.provider] = { payment_account_id: null, account: null }; continue; }
+      const { data: acct } = await supabase
+        .from("payment_accounts" as any)
+        .select("id, account_label, external_user_id, is_active, expires_at, updated_at")
+        .eq("id", accountId)
+        .maybeSingle();
+      next[row.provider] = { payment_account_id: accountId, account: (acct as any) ?? null };
+    }
+    setPpc(next);
   };
   useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [groupId]);
   useEffect(() => {
@@ -113,34 +123,42 @@ function GroupDashboard() {
     }
   }, [search.mp_connected, groupId, navigate]);
 
-  const openMPModal = () => {
-    setMpToken("");
-    setMpPublicKey("");
-    setShowMPModal(true);
-  };
+  const openMPModal = () => { setMpToken(""); setMpPublicKey(""); setOpenModal("mercado_pago"); };
+  const openStripeModal = () => { setStripeSk(""); setStripePk(""); setStripeWh(""); setOpenModal("stripe"); };
+  const closeModal = () => { if (!connecting) setOpenModal(null); };
+
   const submitMP = async (e: React.FormEvent) => {
     e.preventDefault();
     setConnecting(true);
     try {
-      const res = await connectMPFn({
-        data: { groupId, accessToken: mpToken, publicKey: mpPublicKey || undefined },
-      });
+      const res = await connectMPFn({ data: { groupId, accessToken: mpToken, publicKey: mpPublicKey || undefined } });
       toast.success(`Mercado Pago conectado (${res.label})`);
-      setShowMPModal(false);
+      setOpenModal(null);
       await loadFinance();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Falha ao conectar Mercado Pago");
-    } finally {
-      setConnecting(false);
-    }
+    } finally { setConnecting(false); }
   };
-  const disconnectMP = async () => {
-    if (!window.confirm("Desvincular a conta Mercado Pago deste grupo? Cobranças existentes continuam.")) return;
+  const submitStripe = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setConnecting(true);
+    try {
+      const res = await connectStripeFn({ data: { groupId, secretKey: stripeSk, publishableKey: stripePk || undefined, webhookSecret: stripeWh || undefined } });
+      toast.success(`Stripe conectado (${res.label})`);
+      setOpenModal(null);
+      await loadFinance();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Falha ao conectar Stripe");
+    } finally { setConnecting(false); }
+  };
+  const disconnect = async (provider: ProviderId) => {
+    const label = provider === "stripe" ? "Stripe" : "Mercado Pago";
+    if (!window.confirm(`Desvincular a conta ${label} deste grupo? Cobranças existentes continuam.`)) return;
     const { error } = await supabase
       .from("payment_provider_configs")
       .update({ payment_account_id: null, is_active: false } as any)
       .eq("group_id", groupId)
-      .eq("provider", "mercado_pago");
+      .eq("provider", provider);
     if (error) return toast.error(error.message);
     toast.success("Conta desvinculada");
     loadFinance();
@@ -372,41 +390,34 @@ function GroupDashboard() {
             )}
           </div>
 
-          <div className="border-2 border-ink bg-white p-6 space-y-3">
-            <div className="flex items-center justify-between">
-              <h4 className="font-display text-xl uppercase">Configurações Financeiras</h4>
+          <div className="border-2 border-ink bg-white p-6 space-y-4">
+            <h4 className="font-display text-xl uppercase">Configurações Financeiras</h4>
+            <p className="text-[10px] text-faded">Conecte a conta do organizador em cada gateway. O dinheiro vai direto pra essa conta — a plataforma não toca no valor.</p>
+
+            <ProviderCard
+              name="Mercado Pago"
+              accentClass="bg-[#009ee3] text-white"
+              ppc={ppc.mercado_pago}
+              onConnect={openMPModal}
+              onDisconnect={() => disconnect("mercado_pago")}
+            />
+            <ProviderCard
+              name="Stripe"
+              accentClass="bg-[#635bff] text-white"
+              ppc={ppc.stripe}
+              onConnect={openStripeModal}
+              onDisconnect={() => disconnect("stripe")}
+            />
+
+            <div className="pt-2 border-t border-ink/10 space-y-1">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-faded">Em breve</p>
+              <p className="text-[10px] text-faded">Asaas · InfinitePay — mesma arquitetura, basta plugar.</p>
             </div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-faded">Mercado Pago</p>
-            {ppc?.account ? (
-              <>
-                <div className="flex items-center gap-2">
-                  <span className="size-2 rounded-full bg-pitch" />
-                  <span className="text-sm font-bold">Conectado</span>
-                  <span className="text-xs text-faded">· {ppc.account.account_label ?? `#${ppc.account.external_user_id}`}</span>
-                </div>
-                <p className="text-[10px] text-faded">Última sincronização: {new Date(ppc.account.updated_at).toLocaleString("pt-BR")}</p>
-                <div className="flex gap-2 pt-1">
-                  <button onClick={openMPModal} className="flex-1 py-1.5 text-[10px] font-bold uppercase tracking-widest border border-ink/20 hover:bg-ink hover:text-paper transition-colors">Reconectar</button>
-                  <button onClick={disconnectMP} className="flex-1 py-1.5 text-[10px] font-bold uppercase tracking-widest border border-destructive text-destructive hover:bg-destructive hover:text-paper transition-colors">Desvincular</button>
-                </div>
-              </>
-            ) : ppc?.payment_account_id ? (
-              <>
-                <p className="text-xs text-faded">Conta vinculada existe mas você não é o dono — peça ao organizador para reconectar.</p>
-                <button onClick={openMPModal} className="w-full py-2 text-xs font-bold uppercase tracking-widest border-2 border-pitch text-pitch hover:bg-pitch hover:text-paper transition-colors">Conectar minha conta MP</button>
-              </>
-            ) : (
-              <>
-                <p className="text-xs text-faded">Conecte sua conta para que cobranças vão direto pra você — a plataforma não toca no dinheiro.</p>
-                <button onClick={openMPModal} className="w-full py-2 text-xs font-bold uppercase tracking-widest bg-[#009ee3] text-white hover:opacity-90 transition-opacity">Conectar Mercado Pago</button>
-              </>
-            )}
-            <p className="text-[10px] text-faded pt-2 border-t border-ink/10">Outros gateways (Stripe, Asaas, InfinitePay) chegam em breve com a mesma arquitetura.</p>
           </div>
         </aside>
 
-        {showMPModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/60 p-4" onClick={() => !connecting && setShowMPModal(false)}>
+        {openModal === "mercado_pago" && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/60 p-4" onClick={closeModal}>
             <form onSubmit={submitMP} onClick={(e) => e.stopPropagation()} className="bg-paper border-2 border-ink max-w-md w-full p-6 space-y-4">
               <div>
                 <h3 className="font-display text-2xl uppercase">Conectar Mercado Pago</h3>
@@ -414,30 +425,44 @@ function GroupDashboard() {
               </div>
               <label className="block space-y-1">
                 <span className="text-[10px] font-bold uppercase tracking-widest">Access Token *</span>
-                <input
-                  type="password"
-                  required
-                  autoFocus
-                  value={mpToken}
-                  onChange={(e) => setMpToken(e.target.value)}
-                  placeholder="APP_USR-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-                  className="w-full border border-ink/30 px-3 py-2 font-mono text-xs bg-white"
-                />
+                <input type="password" required autoFocus value={mpToken} onChange={(e) => setMpToken(e.target.value)} placeholder="APP_USR-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" className="w-full border border-ink/30 px-3 py-2 font-mono text-xs bg-white" />
               </label>
               <label className="block space-y-1">
                 <span className="text-[10px] font-bold uppercase tracking-widest">Public Key (opcional)</span>
-                <input
-                  type="text"
-                  value={mpPublicKey}
-                  onChange={(e) => setMpPublicKey(e.target.value)}
-                  placeholder="APP_USR-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-                  className="w-full border border-ink/30 px-3 py-2 font-mono text-xs bg-white"
-                />
+                <input type="text" value={mpPublicKey} onChange={(e) => setMpPublicKey(e.target.value)} placeholder="APP_USR-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" className="w-full border border-ink/30 px-3 py-2 font-mono text-xs bg-white" />
               </label>
-              <p className="text-[10px] text-faded">Validamos o token chamando <code>/users/me</code> do Mercado Pago antes de salvar. Nada fica gravado se o token for inválido.</p>
+              <p className="text-[10px] text-faded">Validamos o token chamando <code>/users/me</code> do Mercado Pago antes de salvar.</p>
               <div className="flex gap-2 pt-2">
-                <button type="button" onClick={() => setShowMPModal(false)} disabled={connecting} className="flex-1 py-2 border border-ink/30 text-xs font-bold uppercase tracking-widest disabled:opacity-50">Cancelar</button>
+                <button type="button" onClick={closeModal} disabled={connecting} className="flex-1 py-2 border border-ink/30 text-xs font-bold uppercase tracking-widest disabled:opacity-50">Cancelar</button>
                 <button type="submit" disabled={connecting || !mpToken} className="flex-1 py-2 bg-[#009ee3] text-white text-xs font-bold uppercase tracking-widest disabled:opacity-50">{connecting ? "Validando..." : "Conectar"}</button>
+              </div>
+            </form>
+          </div>
+        )}
+
+        {openModal === "stripe" && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/60 p-4" onClick={closeModal}>
+            <form onSubmit={submitStripe} onClick={(e) => e.stopPropagation()} className="bg-paper border-2 border-ink max-w-md w-full p-6 space-y-4">
+              <div>
+                <h3 className="font-display text-2xl uppercase">Conectar Stripe</h3>
+                <p className="text-xs text-faded mt-1">Cole a sua <strong>Secret Key</strong> do Stripe. Pegue em <a href="https://dashboard.stripe.com/apikeys" target="_blank" rel="noreferrer" className="underline">Dashboard → Developers → API keys</a>. Para começar use as chaves de teste (sk_test_...).</p>
+              </div>
+              <label className="block space-y-1">
+                <span className="text-[10px] font-bold uppercase tracking-widest">Secret Key *</span>
+                <input type="password" required autoFocus value={stripeSk} onChange={(e) => setStripeSk(e.target.value)} placeholder="sk_test_..." className="w-full border border-ink/30 px-3 py-2 font-mono text-xs bg-white" />
+              </label>
+              <label className="block space-y-1">
+                <span className="text-[10px] font-bold uppercase tracking-widest">Publishable Key (opcional, usada no checkout transparente)</span>
+                <input type="text" value={stripePk} onChange={(e) => setStripePk(e.target.value)} placeholder="pk_test_..." className="w-full border border-ink/30 px-3 py-2 font-mono text-xs bg-white" />
+              </label>
+              <label className="block space-y-1">
+                <span className="text-[10px] font-bold uppercase tracking-widest">Webhook Secret (opcional)</span>
+                <input type="password" value={stripeWh} onChange={(e) => setStripeWh(e.target.value)} placeholder="whsec_..." className="w-full border border-ink/30 px-3 py-2 font-mono text-xs bg-white" />
+              </label>
+              <p className="text-[10px] text-faded">Validamos a chave chamando <code>/v1/account</code> do Stripe. Suas chaves ficam guardadas só pra esta pelada.</p>
+              <div className="flex gap-2 pt-2">
+                <button type="button" onClick={closeModal} disabled={connecting} className="flex-1 py-2 border border-ink/30 text-xs font-bold uppercase tracking-widest disabled:opacity-50">Cancelar</button>
+                <button type="submit" disabled={connecting || !stripeSk} className="flex-1 py-2 bg-[#635bff] text-white text-xs font-bold uppercase tracking-widest disabled:opacity-50">{connecting ? "Validando..." : "Conectar"}</button>
               </div>
             </form>
           </div>
@@ -456,4 +481,33 @@ function StatusBadge({ status }: { status: "pendente" | "pago" | "vencido" | "ca
   } as const;
   const labels = { pago: "PAGO", pendente: "PENDENTE", vencido: "VENCIDO", cancelado: "CANCELADO" };
   return <span className={`inline-block px-2 py-0.5 text-[10px] font-bold border ${map[status]}`}>{labels[status]}</span>;
+}
+
+function ProviderCard({ name, accentClass, ppc, onConnect, onDisconnect }: { name: string; accentClass: string; ppc: PPCInfo | null; onConnect: () => void; onDisconnect: () => void }) {
+  return (
+    <div className="border border-ink/15 p-3 space-y-2">
+      <p className="text-[10px] font-bold uppercase tracking-widest text-faded">{name}</p>
+      {ppc?.account ? (
+        <>
+          <div className="flex items-center gap-2">
+            <span className="size-2 rounded-full bg-pitch" />
+            <span className="text-sm font-bold">Conectado</span>
+            <span className="text-xs text-faded truncate">· {ppc.account.account_label ?? `#${ppc.account.external_user_id}`}</span>
+          </div>
+          <p className="text-[10px] text-faded">Sincronizado em {new Date(ppc.account.updated_at).toLocaleString("pt-BR")}</p>
+          <div className="flex gap-2 pt-1">
+            <button onClick={onConnect} className="flex-1 py-1.5 text-[10px] font-bold uppercase tracking-widest border border-ink/20 hover:bg-ink hover:text-paper transition-colors">Reconectar</button>
+            <button onClick={onDisconnect} className="flex-1 py-1.5 text-[10px] font-bold uppercase tracking-widest border border-destructive text-destructive hover:bg-destructive hover:text-paper transition-colors">Desvincular</button>
+          </div>
+        </>
+      ) : ppc?.payment_account_id ? (
+        <>
+          <p className="text-xs text-faded">Conta vinculada existe mas você não é o dono — peça ao organizador para reconectar.</p>
+          <button onClick={onConnect} className="w-full py-2 text-xs font-bold uppercase tracking-widest border-2 border-ink hover:bg-ink hover:text-paper transition-colors">Conectar minha conta</button>
+        </>
+      ) : (
+        <button onClick={onConnect} className={`w-full py-2 text-xs font-bold uppercase tracking-widest hover:opacity-90 transition-opacity ${accentClass}`}>Conectar {name}</button>
+      )}
+    </div>
+  );
 }
