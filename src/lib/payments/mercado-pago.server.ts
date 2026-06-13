@@ -98,3 +98,80 @@ export function mapMpStatus(mpStatus: string): "pendente" | "pago" | "cancelado"
       return "pendente";
   }
 }
+
+// ============================================================================
+// Cartão (checkout transparente) — recebe SOMENTE um cardToken já gerado pelo
+// SDK do Mercado Pago no browser. PAN/CVV nunca tocam o backend.
+// ============================================================================
+
+export interface MPCreateCardInput {
+  accessToken: string;
+  amount: number;
+  description: string;
+  externalId: string;
+  cardToken: string;
+  installments: number;
+  paymentMethodId: string; // ex: "visa", "master" — devolvido pelo SDK
+  issuerId?: string;
+  payerEmail: string;
+  payerDocType?: string; // "CPF" | "CNPJ"
+  payerDocNumber?: string;
+}
+
+export interface MPCreateCardResult {
+  providerChargeId: string;
+  status: string;
+  statusDetail?: string;
+  cardBrand?: string;
+  cardLast4?: string;
+}
+
+export async function mpCreateCardPayment(input: MPCreateCardInput): Promise<MPCreateCardResult> {
+  if (!input.accessToken) throw new Error("Access token do Mercado Pago ausente");
+  if (!input.cardToken) throw new Error("cardToken ausente");
+
+  const body: Record<string, unknown> = {
+    transaction_amount: Number(input.amount.toFixed(2)),
+    token: input.cardToken,
+    description: input.description,
+    installments: input.installments || 1,
+    payment_method_id: input.paymentMethodId,
+    external_reference: input.externalId,
+    payer: {
+      email: input.payerEmail,
+      ...(input.payerDocType && input.payerDocNumber
+        ? { identification: { type: input.payerDocType, number: input.payerDocNumber } }
+        : {}),
+    },
+  };
+  if (input.issuerId) body.issuer_id = input.issuerId;
+
+  console.log("[MP] CARD_CREATE_START", { externalId: input.externalId, amount: input.amount, installments: input.installments });
+
+  const res = await fetch(`${MP_API}/v1/payments`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${input.accessToken}`,
+      "X-Idempotency-Key": `card-${input.externalId}-${Date.now()}`,
+    },
+    body: JSON.stringify(body),
+  });
+
+  const json: any = await res.json().catch(() => ({}));
+  console.log("[MP] CARD_RESPONSE", { status: res.status, id: json?.id, mpStatus: json?.status, statusDetail: json?.status_detail });
+
+  if (!res.ok) {
+    console.error("[MP] CARD_CREATE_ERROR", json);
+    const msg = json?.message || json?.error || `Mercado Pago HTTP ${res.status}`;
+    throw new Error(typeof msg === "string" ? msg : JSON.stringify(msg));
+  }
+
+  return {
+    providerChargeId: String(json.id),
+    status: String(json.status ?? "pending"),
+    statusDetail: json.status_detail ? String(json.status_detail) : undefined,
+    cardBrand: json?.payment_method_id ? String(json.payment_method_id) : undefined,
+    cardLast4: json?.card?.last_four_digits ? String(json.card.last_four_digits) : undefined,
+  };
+}

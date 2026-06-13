@@ -17,6 +17,8 @@ export type Database = {
       charges: {
         Row: {
           amount: number
+          card_brand: string | null
+          card_last4: string | null
           client_secret: string | null
           created_at: string
           created_by: string | null
@@ -24,12 +26,14 @@ export type Database = {
           due_date: string
           group_id: string
           id: string
+          installments: number
           metadata: Json
           paid_amount: number | null
           paid_at: string | null
           participant_id: string
           payment_intent_id: string | null
           payment_link: string | null
+          payment_method: string | null
           pix_copy_paste: string | null
           provider: string
           provider_charge_id: string | null
@@ -39,6 +43,8 @@ export type Database = {
         }
         Insert: {
           amount: number
+          card_brand?: string | null
+          card_last4?: string | null
           client_secret?: string | null
           created_at?: string
           created_by?: string | null
@@ -46,12 +52,14 @@ export type Database = {
           due_date: string
           group_id: string
           id?: string
+          installments?: number
           metadata?: Json
           paid_amount?: number | null
           paid_at?: string | null
           participant_id: string
           payment_intent_id?: string | null
           payment_link?: string | null
+          payment_method?: string | null
           pix_copy_paste?: string | null
           provider?: string
           provider_charge_id?: string | null
@@ -61,6 +69,8 @@ export type Database = {
         }
         Update: {
           amount?: number
+          card_brand?: string | null
+          card_last4?: string | null
           client_secret?: string | null
           created_at?: string
           created_by?: string | null
@@ -68,12 +78,14 @@ export type Database = {
           due_date?: string
           group_id?: string
           id?: string
+          installments?: number
           metadata?: Json
           paid_amount?: number | null
           paid_at?: string | null
           participant_id?: string
           payment_intent_id?: string | null
           payment_link?: string | null
+          payment_method?: string | null
           pix_copy_paste?: string | null
           provider?: string
           provider_charge_id?: string | null
