@@ -482,3 +482,32 @@ function StatusBadge({ status }: { status: "pendente" | "pago" | "vencido" | "ca
   const labels = { pago: "PAGO", pendente: "PENDENTE", vencido: "VENCIDO", cancelado: "CANCELADO" };
   return <span className={`inline-block px-2 py-0.5 text-[10px] font-bold border ${map[status]}`}>{labels[status]}</span>;
 }
+
+function ProviderCard({ name, accentClass, ppc, onConnect, onDisconnect }: { name: string; accentClass: string; ppc: PPCInfo | null; onConnect: () => void; onDisconnect: () => void }) {
+  return (
+    <div className="border border-ink/15 p-3 space-y-2">
+      <p className="text-[10px] font-bold uppercase tracking-widest text-faded">{name}</p>
+      {ppc?.account ? (
+        <>
+          <div className="flex items-center gap-2">
+            <span className="size-2 rounded-full bg-pitch" />
+            <span className="text-sm font-bold">Conectado</span>
+            <span className="text-xs text-faded truncate">· {ppc.account.account_label ?? `#${ppc.account.external_user_id}`}</span>
+          </div>
+          <p className="text-[10px] text-faded">Sincronizado em {new Date(ppc.account.updated_at).toLocaleString("pt-BR")}</p>
+          <div className="flex gap-2 pt-1">
+            <button onClick={onConnect} className="flex-1 py-1.5 text-[10px] font-bold uppercase tracking-widest border border-ink/20 hover:bg-ink hover:text-paper transition-colors">Reconectar</button>
+            <button onClick={onDisconnect} className="flex-1 py-1.5 text-[10px] font-bold uppercase tracking-widest border border-destructive text-destructive hover:bg-destructive hover:text-paper transition-colors">Desvincular</button>
+          </div>
+        </>
+      ) : ppc?.payment_account_id ? (
+        <>
+          <p className="text-xs text-faded">Conta vinculada existe mas você não é o dono — peça ao organizador para reconectar.</p>
+          <button onClick={onConnect} className="w-full py-2 text-xs font-bold uppercase tracking-widest border-2 border-ink hover:bg-ink hover:text-paper transition-colors">Conectar minha conta</button>
+        </>
+      ) : (
+        <button onClick={onConnect} className={`w-full py-2 text-xs font-bold uppercase tracking-widest hover:opacity-90 transition-opacity ${accentClass}`}>Conectar {name}</button>
+      )}
+    </div>
+  );
+}
