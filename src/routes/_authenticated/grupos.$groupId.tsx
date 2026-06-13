@@ -390,41 +390,34 @@ function GroupDashboard() {
             )}
           </div>
 
-          <div className="border-2 border-ink bg-white p-6 space-y-3">
-            <div className="flex items-center justify-between">
-              <h4 className="font-display text-xl uppercase">Configurações Financeiras</h4>
+          <div className="border-2 border-ink bg-white p-6 space-y-4">
+            <h4 className="font-display text-xl uppercase">Configurações Financeiras</h4>
+            <p className="text-[10px] text-faded">Conecte a conta do organizador em cada gateway. O dinheiro vai direto pra essa conta — a plataforma não toca no valor.</p>
+
+            <ProviderCard
+              name="Mercado Pago"
+              accentClass="bg-[#009ee3] text-white"
+              ppc={ppc.mercado_pago}
+              onConnect={openMPModal}
+              onDisconnect={() => disconnect("mercado_pago")}
+            />
+            <ProviderCard
+              name="Stripe"
+              accentClass="bg-[#635bff] text-white"
+              ppc={ppc.stripe}
+              onConnect={openStripeModal}
+              onDisconnect={() => disconnect("stripe")}
+            />
+
+            <div className="pt-2 border-t border-ink/10 space-y-1">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-faded">Em breve</p>
+              <p className="text-[10px] text-faded">Asaas · InfinitePay — mesma arquitetura, basta plugar.</p>
             </div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-faded">Mercado Pago</p>
-            {ppc?.account ? (
-              <>
-                <div className="flex items-center gap-2">
-                  <span className="size-2 rounded-full bg-pitch" />
-                  <span className="text-sm font-bold">Conectado</span>
-                  <span className="text-xs text-faded">· {ppc.account.account_label ?? `#${ppc.account.external_user_id}`}</span>
-                </div>
-                <p className="text-[10px] text-faded">Última sincronização: {new Date(ppc.account.updated_at).toLocaleString("pt-BR")}</p>
-                <div className="flex gap-2 pt-1">
-                  <button onClick={openMPModal} className="flex-1 py-1.5 text-[10px] font-bold uppercase tracking-widest border border-ink/20 hover:bg-ink hover:text-paper transition-colors">Reconectar</button>
-                  <button onClick={disconnectMP} className="flex-1 py-1.5 text-[10px] font-bold uppercase tracking-widest border border-destructive text-destructive hover:bg-destructive hover:text-paper transition-colors">Desvincular</button>
-                </div>
-              </>
-            ) : ppc?.payment_account_id ? (
-              <>
-                <p className="text-xs text-faded">Conta vinculada existe mas você não é o dono — peça ao organizador para reconectar.</p>
-                <button onClick={openMPModal} className="w-full py-2 text-xs font-bold uppercase tracking-widest border-2 border-pitch text-pitch hover:bg-pitch hover:text-paper transition-colors">Conectar minha conta MP</button>
-              </>
-            ) : (
-              <>
-                <p className="text-xs text-faded">Conecte sua conta para que cobranças vão direto pra você — a plataforma não toca no dinheiro.</p>
-                <button onClick={openMPModal} className="w-full py-2 text-xs font-bold uppercase tracking-widest bg-[#009ee3] text-white hover:opacity-90 transition-opacity">Conectar Mercado Pago</button>
-              </>
-            )}
-            <p className="text-[10px] text-faded pt-2 border-t border-ink/10">Outros gateways (Stripe, Asaas, InfinitePay) chegam em breve com a mesma arquitetura.</p>
           </div>
         </aside>
 
-        {showMPModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/60 p-4" onClick={() => !connecting && setShowMPModal(false)}>
+        {openModal === "mercado_pago" && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/60 p-4" onClick={closeModal}>
             <form onSubmit={submitMP} onClick={(e) => e.stopPropagation()} className="bg-paper border-2 border-ink max-w-md w-full p-6 space-y-4">
               <div>
                 <h3 className="font-display text-2xl uppercase">Conectar Mercado Pago</h3>
@@ -432,30 +425,44 @@ function GroupDashboard() {
               </div>
               <label className="block space-y-1">
                 <span className="text-[10px] font-bold uppercase tracking-widest">Access Token *</span>
-                <input
-                  type="password"
-                  required
-                  autoFocus
-                  value={mpToken}
-                  onChange={(e) => setMpToken(e.target.value)}
-                  placeholder="APP_USR-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-                  className="w-full border border-ink/30 px-3 py-2 font-mono text-xs bg-white"
-                />
+                <input type="password" required autoFocus value={mpToken} onChange={(e) => setMpToken(e.target.value)} placeholder="APP_USR-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" className="w-full border border-ink/30 px-3 py-2 font-mono text-xs bg-white" />
               </label>
               <label className="block space-y-1">
                 <span className="text-[10px] font-bold uppercase tracking-widest">Public Key (opcional)</span>
-                <input
-                  type="text"
-                  value={mpPublicKey}
-                  onChange={(e) => setMpPublicKey(e.target.value)}
-                  placeholder="APP_USR-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-                  className="w-full border border-ink/30 px-3 py-2 font-mono text-xs bg-white"
-                />
+                <input type="text" value={mpPublicKey} onChange={(e) => setMpPublicKey(e.target.value)} placeholder="APP_USR-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" className="w-full border border-ink/30 px-3 py-2 font-mono text-xs bg-white" />
               </label>
-              <p className="text-[10px] text-faded">Validamos o token chamando <code>/users/me</code> do Mercado Pago antes de salvar. Nada fica gravado se o token for inválido.</p>
+              <p className="text-[10px] text-faded">Validamos o token chamando <code>/users/me</code> do Mercado Pago antes de salvar.</p>
               <div className="flex gap-2 pt-2">
-                <button type="button" onClick={() => setShowMPModal(false)} disabled={connecting} className="flex-1 py-2 border border-ink/30 text-xs font-bold uppercase tracking-widest disabled:opacity-50">Cancelar</button>
+                <button type="button" onClick={closeModal} disabled={connecting} className="flex-1 py-2 border border-ink/30 text-xs font-bold uppercase tracking-widest disabled:opacity-50">Cancelar</button>
                 <button type="submit" disabled={connecting || !mpToken} className="flex-1 py-2 bg-[#009ee3] text-white text-xs font-bold uppercase tracking-widest disabled:opacity-50">{connecting ? "Validando..." : "Conectar"}</button>
+              </div>
+            </form>
+          </div>
+        )}
+
+        {openModal === "stripe" && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/60 p-4" onClick={closeModal}>
+            <form onSubmit={submitStripe} onClick={(e) => e.stopPropagation()} className="bg-paper border-2 border-ink max-w-md w-full p-6 space-y-4">
+              <div>
+                <h3 className="font-display text-2xl uppercase">Conectar Stripe</h3>
+                <p className="text-xs text-faded mt-1">Cole a sua <strong>Secret Key</strong> do Stripe. Pegue em <a href="https://dashboard.stripe.com/apikeys" target="_blank" rel="noreferrer" className="underline">Dashboard → Developers → API keys</a>. Para começar use as chaves de teste (sk_test_...).</p>
+              </div>
+              <label className="block space-y-1">
+                <span className="text-[10px] font-bold uppercase tracking-widest">Secret Key *</span>
+                <input type="password" required autoFocus value={stripeSk} onChange={(e) => setStripeSk(e.target.value)} placeholder="sk_test_..." className="w-full border border-ink/30 px-3 py-2 font-mono text-xs bg-white" />
+              </label>
+              <label className="block space-y-1">
+                <span className="text-[10px] font-bold uppercase tracking-widest">Publishable Key (opcional, usada no checkout transparente)</span>
+                <input type="text" value={stripePk} onChange={(e) => setStripePk(e.target.value)} placeholder="pk_test_..." className="w-full border border-ink/30 px-3 py-2 font-mono text-xs bg-white" />
+              </label>
+              <label className="block space-y-1">
+                <span className="text-[10px] font-bold uppercase tracking-widest">Webhook Secret (opcional)</span>
+                <input type="password" value={stripeWh} onChange={(e) => setStripeWh(e.target.value)} placeholder="whsec_..." className="w-full border border-ink/30 px-3 py-2 font-mono text-xs bg-white" />
+              </label>
+              <p className="text-[10px] text-faded">Validamos a chave chamando <code>/v1/account</code> do Stripe. Suas chaves ficam guardadas só pra esta pelada.</p>
+              <div className="flex gap-2 pt-2">
+                <button type="button" onClick={closeModal} disabled={connecting} className="flex-1 py-2 border border-ink/30 text-xs font-bold uppercase tracking-widest disabled:opacity-50">Cancelar</button>
+                <button type="submit" disabled={connecting || !stripeSk} className="flex-1 py-2 bg-[#635bff] text-white text-xs font-bold uppercase tracking-widest disabled:opacity-50">{connecting ? "Validando..." : "Conectar"}</button>
               </div>
             </form>
           </div>
