@@ -17,6 +17,7 @@ export type Database = {
       charges: {
         Row: {
           amount: number
+          client_secret: string | null
           created_at: string
           created_by: string | null
           description: string
@@ -27,6 +28,7 @@ export type Database = {
           paid_amount: number | null
           paid_at: string | null
           participant_id: string
+          payment_intent_id: string | null
           payment_link: string | null
           pix_copy_paste: string | null
           provider: string
@@ -37,6 +39,7 @@ export type Database = {
         }
         Insert: {
           amount: number
+          client_secret?: string | null
           created_at?: string
           created_by?: string | null
           description: string
@@ -47,6 +50,7 @@ export type Database = {
           paid_amount?: number | null
           paid_at?: string | null
           participant_id: string
+          payment_intent_id?: string | null
           payment_link?: string | null
           pix_copy_paste?: string | null
           provider?: string
@@ -57,6 +61,7 @@ export type Database = {
         }
         Update: {
           amount?: number
+          client_secret?: string | null
           created_at?: string
           created_by?: string | null
           description?: string
@@ -67,6 +72,7 @@ export type Database = {
           paid_amount?: number | null
           paid_at?: string | null
           participant_id?: string
+          payment_intent_id?: string | null
           payment_link?: string | null
           pix_copy_paste?: string | null
           provider?: string
