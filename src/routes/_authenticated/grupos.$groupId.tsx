@@ -478,12 +478,28 @@ function GroupDashboard() {
                           <div className={`absolute -bottom-1 -right-1 size-3 ${dot} border-2 border-white rounded-full`} />
                         </div>
                         <div className="min-w-0">
-                          <p className="text-sm font-bold truncate">{p.name}</p>
+                          <p className="text-sm font-bold truncate">
+                            {p.name}
+                            {!hasAccount && <span className="ml-1 font-serif italic font-normal text-[10px] text-faded normal-case">(Sem Conta Cadastrada)</span>}
+                          </p>
                           <p className="text-[10px] text-faded uppercase tracking-tighter truncate">{p.position || p.type} · {label}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-1 shrink-0">
-                        {p.jersey_number && <div className="font-mono text-xs opacity-40 mr-1">#{p.jersey_number}</div>}
+                        {p.jersey_number != null && (
+                          <div className="font-mono text-xs mr-1">
+                            <span className="text-faded/60 font-serif italic mr-0.5">Camisa</span>
+                            <span className="opacity-60">#{p.jersey_number}</span>
+                          </div>
+                        )}
+                        <button
+                          type="button"
+                          aria-label={`Visualizar ${p.name}`}
+                          onClick={() => setViewing(p)}
+                          className="p-1.5 border border-ink/10 text-faded hover:text-pitch hover:border-pitch transition-colors"
+                        >
+                          <Eye className="size-3" />
+                        </button>
                         <button
                           type="button"
                           aria-label={`Editar ${p.name}`}
