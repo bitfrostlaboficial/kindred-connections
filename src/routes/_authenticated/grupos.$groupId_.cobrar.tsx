@@ -275,7 +275,7 @@ function NewChargePage() {
           onClick={(event) => console.log("WHATSAPP_BUTTON_CLICKED", { source: "submit_button_click", disabled: event.currentTarget.disabled, pointerEvents: window.getComputedStyle(event.currentTarget).pointerEvents })}
           className="w-full bg-pitch text-paper py-3 font-display text-xl tracking-wide shadow-ledger disabled:opacity-50"
         >
-          {saving ? "GERANDO..." : `GERAR ${selected.size} COBRANÇA${selected.size === 1 ? "" : "S"} E ENVIAR PELO WHATSAPP`}
+          {saving ? "GERANDO..." : `GERAR ${selected.size} COBRANÇA${selected.size === 1 ? "" : "S"}`}
         </button>
       </form>
 
