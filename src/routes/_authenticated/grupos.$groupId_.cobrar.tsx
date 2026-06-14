@@ -327,24 +327,6 @@ function ChargesResultModal({ charges, participants, groupName, onClose }: { cha
           <button onClick={onClose} className="text-2xl px-2">×</button>
         </div>
         <div className="p-6 space-y-4">
-          {firstOk && firstWaUrl ? (
-            <a
-              href={firstWaUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => {
-                if (okCharges.length > 1) {
-                  toast.message(`Abrindo ${firstOk.participant_name}. Use os botões abaixo para os outros ${okCharges.length - 1}.`);
-                }
-              }}
-              className="block text-center w-full bg-[#25D366] text-white py-3 font-display text-lg tracking-wide shadow-ledger hover:opacity-90 transition-opacity"
-            >
-              ENVIAR {okCharges.length > 1 ? `PRIMEIRO (${okCharges.length} TOTAL)` : "PELO WHATSAPP"} ↗
-            </a>
-          ) : (
-            <div className="bg-red-50 border-2 border-red-200 p-3 text-sm text-red-800 text-center">Nenhuma cobrança válida para enviar</div>
-          )}
-
           <div className="text-center">
             <div className="text-[10px] font-bold uppercase tracking-widest text-faded">{c.description}</div>
             <div className="font-display text-5xl text-pitch mt-1">{fmt(c.amount)}</div>
@@ -356,6 +338,18 @@ function ChargesResultModal({ charges, participants, groupName, onClose }: { cha
             </div>
           ) : (
             <>
+              {c.pix_qr_code && (
+                <div className="flex justify-center">
+                  <img src={`data:image/png;base64,${c.pix_qr_code}`} alt="QR Code Pix" className="size-56 border-2 border-ink/10" />
+                </div>
+              )}
+              {c.pix_copy_paste && (
+                <>
+                  <div className="text-[10px] font-bold uppercase tracking-widest text-faded">Pix Copia e Cola</div>
+                  <div className="border-2 border-ink/10 p-3 bg-paper text-xs font-mono break-all max-h-24 overflow-y-auto">{c.pix_copy_paste}</div>
+                  <button onClick={() => copy(c.pix_copy_paste!)} className="w-full bg-pitch text-paper py-2 font-display text-lg tracking-wide">COPIAR PIX</button>
+                </>
+              )}
               {currentWaUrl ? (
                 <a
                   href={currentWaUrl}
@@ -371,26 +365,13 @@ function ChargesResultModal({ charges, participants, groupName, onClose }: { cha
               {!phoneOf(c.participant_id) && (
                 <p className="text-[10px] text-canarinho text-center">⚠ Sem telefone cadastrado — o WhatsApp abrirá sem destinatário.</p>
               )}
-
-
-
-              {c.pix_qr_code && (
-                <div className="flex justify-center">
-                  <img src={`data:image/png;base64,${c.pix_qr_code}`} alt="QR Code Pix" className="size-56 border-2 border-ink/10" />
-                </div>
-              )}
-              {c.pix_copy_paste && (
-                <>
-                  <div className="text-[10px] font-bold uppercase tracking-widest text-faded">Pix Copia e Cola</div>
-                  <div className="border-2 border-ink/10 p-3 bg-paper text-xs font-mono break-all max-h-24 overflow-y-auto">{c.pix_copy_paste}</div>
-                  <button onClick={() => copy(c.pix_copy_paste)} className="w-full bg-pitch text-paper py-2 font-display text-lg tracking-wide">COPIAR PIX</button>
-                </>
-              )}
-              {c.payment_link && (
-                <a href={c.payment_link} target="_blank" rel="noreferrer" className="block text-center border-2 border-pitch text-pitch py-2 font-display text-lg tracking-wide hover:bg-pitch hover:text-paper transition-colors">ABRIR NO MERCADO PAGO ↗</a>
-              )}
+              <button
+                onClick={() => copy(paymentUrlOf(c.public_token))}
+                className="block text-center w-full border-2 border-pitch text-pitch py-2 font-display text-lg tracking-wide hover:bg-pitch hover:text-paper transition-colors"
+              >
+                Copiar link da página de pagamento
+              </button>
               <a href={`/pagar/${c.public_token}`} target="_blank" rel="noreferrer" className="block text-center text-xs font-bold uppercase tracking-widest text-faded hover:text-pitch">Link público para o jogador ↗</a>
-              <div className="text-center text-[10px] font-bold uppercase tracking-widest text-faded">Status: {c.status}</div>
             </>
           )}
         </div>
