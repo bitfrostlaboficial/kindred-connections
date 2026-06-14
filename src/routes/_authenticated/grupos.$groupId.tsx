@@ -65,6 +65,8 @@ function GroupDashboard() {
   const [ePosition, setEPosition] = useState("");
   const [eJersey, setEJersey] = useState("");
   const [eSaving, setESaving] = useState(false);
+  const [viewing, setViewing] = useState<Participant | null>(null);
+  const [profiles, setProfiles] = useState<Record<string, { full_name: string | null; avatar_url: string | null; preferred_position: string | null }>>({});
 
   const startEdit = (p: Participant) => {
     setEditingId(p.id);
