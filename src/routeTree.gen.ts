@@ -23,6 +23,7 @@ import { Route as ApiPublicWebhooksMercadopagoRouteImport } from './routes/api/p
 import { Route as ApiOauthMercadopagoStartRouteImport } from './routes/api/oauth/mercadopago/start'
 import { Route as ApiOauthMercadopagoCallbackRouteImport } from './routes/api/oauth/mercadopago/callback'
 import { Route as AuthenticatedGruposGroupIdLinksRouteImport } from './routes/_authenticated/grupos.$groupId_.links'
+import { Route as AuthenticatedGruposGroupIdConferenciaRouteImport } from './routes/_authenticated/grupos.$groupId_.conferencia'
 import { Route as AuthenticatedGruposGroupIdCobrarRouteImport } from './routes/_authenticated/grupos.$groupId_.cobrar'
 
 const AuthRoute = AuthRouteImport.update({
@@ -100,6 +101,12 @@ const AuthenticatedGruposGroupIdLinksRoute =
     path: '/$groupId/links',
     getParentRoute: () => AuthenticatedGruposRoute,
   } as any)
+const AuthenticatedGruposGroupIdConferenciaRoute =
+  AuthenticatedGruposGroupIdConferenciaRouteImport.update({
+    id: '/$groupId_/conferencia',
+    path: '/$groupId/conferencia',
+    getParentRoute: () => AuthenticatedGruposRoute,
+  } as any)
 const AuthenticatedGruposGroupIdCobrarRoute =
   AuthenticatedGruposGroupIdCobrarRouteImport.update({
     id: '/$groupId_/cobrar',
@@ -117,6 +124,7 @@ export interface FileRoutesByFullPath {
   '/grupos/$groupId': typeof AuthenticatedGruposGroupIdRoute
   '/grupos/': typeof AuthenticatedGruposIndexRoute
   '/grupos/$groupId/cobrar': typeof AuthenticatedGruposGroupIdCobrarRoute
+  '/grupos/$groupId/conferencia': typeof AuthenticatedGruposGroupIdConferenciaRoute
   '/grupos/$groupId/links': typeof AuthenticatedGruposGroupIdLinksRoute
   '/api/oauth/mercadopago/callback': typeof ApiOauthMercadopagoCallbackRoute
   '/api/oauth/mercadopago/start': typeof ApiOauthMercadopagoStartRoute
@@ -132,6 +140,7 @@ export interface FileRoutesByTo {
   '/grupos/$groupId': typeof AuthenticatedGruposGroupIdRoute
   '/grupos': typeof AuthenticatedGruposIndexRoute
   '/grupos/$groupId/cobrar': typeof AuthenticatedGruposGroupIdCobrarRoute
+  '/grupos/$groupId/conferencia': typeof AuthenticatedGruposGroupIdConferenciaRoute
   '/grupos/$groupId/links': typeof AuthenticatedGruposGroupIdLinksRoute
   '/api/oauth/mercadopago/callback': typeof ApiOauthMercadopagoCallbackRoute
   '/api/oauth/mercadopago/start': typeof ApiOauthMercadopagoStartRoute
@@ -150,6 +159,7 @@ export interface FileRoutesById {
   '/_authenticated/grupos/$groupId': typeof AuthenticatedGruposGroupIdRoute
   '/_authenticated/grupos/': typeof AuthenticatedGruposIndexRoute
   '/_authenticated/grupos/$groupId_/cobrar': typeof AuthenticatedGruposGroupIdCobrarRoute
+  '/_authenticated/grupos/$groupId_/conferencia': typeof AuthenticatedGruposGroupIdConferenciaRoute
   '/_authenticated/grupos/$groupId_/links': typeof AuthenticatedGruposGroupIdLinksRoute
   '/api/oauth/mercadopago/callback': typeof ApiOauthMercadopagoCallbackRoute
   '/api/oauth/mercadopago/start': typeof ApiOauthMercadopagoStartRoute
@@ -168,6 +178,7 @@ export interface FileRouteTypes {
     | '/grupos/$groupId'
     | '/grupos/'
     | '/grupos/$groupId/cobrar'
+    | '/grupos/$groupId/conferencia'
     | '/grupos/$groupId/links'
     | '/api/oauth/mercadopago/callback'
     | '/api/oauth/mercadopago/start'
@@ -183,6 +194,7 @@ export interface FileRouteTypes {
     | '/grupos/$groupId'
     | '/grupos'
     | '/grupos/$groupId/cobrar'
+    | '/grupos/$groupId/conferencia'
     | '/grupos/$groupId/links'
     | '/api/oauth/mercadopago/callback'
     | '/api/oauth/mercadopago/start'
@@ -200,6 +212,7 @@ export interface FileRouteTypes {
     | '/_authenticated/grupos/$groupId'
     | '/_authenticated/grupos/'
     | '/_authenticated/grupos/$groupId_/cobrar'
+    | '/_authenticated/grupos/$groupId_/conferencia'
     | '/_authenticated/grupos/$groupId_/links'
     | '/api/oauth/mercadopago/callback'
     | '/api/oauth/mercadopago/start'
@@ -319,6 +332,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedGruposGroupIdLinksRouteImport
       parentRoute: typeof AuthenticatedGruposRoute
     }
+    '/_authenticated/grupos/$groupId_/conferencia': {
+      id: '/_authenticated/grupos/$groupId_/conferencia'
+      path: '/$groupId/conferencia'
+      fullPath: '/grupos/$groupId/conferencia'
+      preLoaderRoute: typeof AuthenticatedGruposGroupIdConferenciaRouteImport
+      parentRoute: typeof AuthenticatedGruposRoute
+    }
     '/_authenticated/grupos/$groupId_/cobrar': {
       id: '/_authenticated/grupos/$groupId_/cobrar'
       path: '/$groupId/cobrar'
@@ -333,6 +353,7 @@ interface AuthenticatedGruposRouteChildren {
   AuthenticatedGruposGroupIdRoute: typeof AuthenticatedGruposGroupIdRoute
   AuthenticatedGruposIndexRoute: typeof AuthenticatedGruposIndexRoute
   AuthenticatedGruposGroupIdCobrarRoute: typeof AuthenticatedGruposGroupIdCobrarRoute
+  AuthenticatedGruposGroupIdConferenciaRoute: typeof AuthenticatedGruposGroupIdConferenciaRoute
   AuthenticatedGruposGroupIdLinksRoute: typeof AuthenticatedGruposGroupIdLinksRoute
 }
 
@@ -340,6 +361,8 @@ const AuthenticatedGruposRouteChildren: AuthenticatedGruposRouteChildren = {
   AuthenticatedGruposGroupIdRoute: AuthenticatedGruposGroupIdRoute,
   AuthenticatedGruposIndexRoute: AuthenticatedGruposIndexRoute,
   AuthenticatedGruposGroupIdCobrarRoute: AuthenticatedGruposGroupIdCobrarRoute,
+  AuthenticatedGruposGroupIdConferenciaRoute:
+    AuthenticatedGruposGroupIdConferenciaRoute,
   AuthenticatedGruposGroupIdLinksRoute: AuthenticatedGruposGroupIdLinksRoute,
 }
 
