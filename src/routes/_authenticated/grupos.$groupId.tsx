@@ -182,6 +182,21 @@ function GroupDashboard() {
     load();
   };
 
+  const unmarkPaid = async (chargeId: string) => {
+    const { error } = await supabase.from("charges").update({ status: "pendente", paid_at: null }).eq("id", chargeId);
+    if (error) return toast.error(error.message);
+    toast.success("Cobrança desmarcada");
+    load();
+  };
+
+  const deleteCharge = async (chargeId: string) => {
+    if (!window.confirm("Excluir esta cobrança? Esta ação não pode ser desfeita.")) return;
+    const { error } = await supabase.from("charges").delete().eq("id", chargeId);
+    if (error) return toast.error(error.message);
+    setCharges((list) => list.filter((x) => x.id !== chargeId));
+    toast.success("Cobrança excluída");
+  };
+
   const availableMonths = useMemo(() => {
     const set = new Set<string>(charges.map((c) => c.due_date.slice(0, 7)));
     set.add(new Date().toISOString().slice(0, 7));
