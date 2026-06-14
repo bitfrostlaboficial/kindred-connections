@@ -113,6 +113,50 @@ export type Database = {
           },
         ]
       }
+      group_join_requests: {
+        Row: {
+          created_at: string
+          group_id: string
+          id: string
+          requested_at: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          group_id: string
+          id?: string
+          requested_at?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          group_id?: string
+          id?: string
+          requested_at?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_join_requests_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       group_members: {
         Row: {
           created_at: string
@@ -151,8 +195,12 @@ export type Database = {
           created_by: string
           default_monthly_fee: number | null
           description: string | null
+          group_link: string | null
+          group_link_access: string
+          group_link_label: string | null
           id: string
           invite_token: string | null
+          join_mode: string
           name: string
           pix_key: string | null
           pix_recipient_name: string | null
@@ -163,8 +211,12 @@ export type Database = {
           created_by: string
           default_monthly_fee?: number | null
           description?: string | null
+          group_link?: string | null
+          group_link_access?: string
+          group_link_label?: string | null
           id?: string
           invite_token?: string | null
+          join_mode?: string
           name: string
           pix_key?: string | null
           pix_recipient_name?: string | null
@@ -175,8 +227,12 @@ export type Database = {
           created_by?: string
           default_monthly_fee?: number | null
           description?: string | null
+          group_link?: string | null
+          group_link_access?: string
+          group_link_label?: string | null
           id?: string
           invite_token?: string | null
+          join_mode?: string
           name?: string
           pix_key?: string | null
           pix_recipient_name?: string | null
