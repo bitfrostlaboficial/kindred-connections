@@ -587,6 +587,14 @@ function GroupDashboard() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <PixColetivoDialog
+        open={showPixColetivo}
+        onClose={() => setShowPixColetivo(false)}
+        groupName={group.name}
+        pixKey={group.pix_key}
+        pixRecipientName={group.pix_recipient_name}
+      />
     </main>
   );
 }
