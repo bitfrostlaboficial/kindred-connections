@@ -15,16 +15,86 @@ type Group = { id: string; name: string; default_monthly_fee: number | null; pix
 type ProviderId = "pix_manual" | "mercado_pago";
 type MPCharge = { id: string; participant_id: string; participant_name: string; amount: number; description: string; status: string; pix_copy_paste: string | null; pix_qr_code: string | null; payment_link: string | null; public_token: string; error?: string };
 
-function openWhatsappDirect(url: string, source: string) {
-  console.log("WHATSAPP_WINDOW_OPEN_DIRECT", { source, url });
+function logNavigationEnvironment(source: string) {
+  const env = {
+    source,
+    host: window.location.host,
+    isLovablePreview: window.location.host.includes("lovable.app"),
+    isIframe: false,
+    sandbox: null as string | null,
+    allowPopups: null as boolean | null,
+    allowPopupsToEscapeSandbox: null as boolean | null,
+  };
+
   try {
-    const win = window.open(url, "_blank", "noopener,noreferrer");
-    if (!win) window.location.assign(url);
+    env.isIframe = window.self !== window.top;
+  } catch {
+    env.isIframe = true;
+  }
+
+  try {
+    const frame = window.frameElement as HTMLIFrameElement | null;
+    const sandbox = frame?.getAttribute("sandbox") ?? null;
+    env.sandbox = sandbox;
+    env.allowPopups = sandbox ? sandbox.split(/\s+/).includes("allow-popups") : null;
+    env.allowPopupsToEscapeSandbox = sandbox ? sandbox.split(/\s+/).includes("allow-popups-to-escape-sandbox") : null;
+  } catch {
+    env.sandbox = "inaccessible";
+  }
+
+  console.log("NAVIGATION_ENVIRONMENT", env);
+  return env;
+}
+
+function openWhatsappDirect(url: string, source: string, onManualFallback?: (url: string) => void) {
+  console.log("WHATSAPP_WINDOW_OPEN_DIRECT", { source, url });
+  logNavigationEnvironment(source);
+  try {
+    const result = window.open(url, "_blank");
+    console.log("WINDOW_OPEN_RETURN", { source, result });
+    try { if (result) result.opener = null; } catch { /* noop */ }
+
+    if (!result) {
+      console.warn("WINDOW_OPEN_RETURN_NULL", { source, url });
+      onManualFallback?.(url);
+      console.log("WHATSAPP_LOCATION_HREF_FALLBACK", url);
+      window.location.href = url;
+      return false;
+    }
+
     return true;
   } catch (e) {
     console.error("WHATSAPP_WINDOW_OPEN_ERROR", e);
-    toast.error("Não foi possível abrir o WhatsApp. Libere pop-ups para este site.");
+    onManualFallback?.(url);
+    try {
+      console.log("WHATSAPP_LOCATION_HREF_FALLBACK", url);
+      window.location.href = url;
+    } catch (locationError) {
+      console.error("WHATSAPP_LOCATION_HREF_ERROR", locationError);
+      toast.error("Não foi possível abrir automaticamente. Use o link manual exibido na tela.");
+    }
     return false;
+  }
+}
+
+function openGoogleNavigationTest(onManualFallback?: (url: string) => void) {
+  const url = "https://google.com";
+  const source = "google_window_open_test";
+  console.log("GOOGLE_WINDOW_OPEN_TEST_CLICKED", { url });
+  logNavigationEnvironment(source);
+  try {
+    const result = window.open(url, "_blank");
+    console.log("WINDOW_OPEN_RETURN", { source, result });
+    try { if (result) result.opener = null; } catch { /* noop */ }
+    if (!result) {
+      console.warn("GOOGLE_WINDOW_OPEN_RETURN_NULL", { url });
+      onManualFallback?.(url);
+      console.log("GOOGLE_LOCATION_HREF_FALLBACK", url);
+      window.location.href = url;
+    }
+  } catch (error) {
+    console.error("GOOGLE_WINDOW_OPEN_ERROR", error);
+    onManualFallback?.(url);
   }
 }
 
@@ -293,6 +363,7 @@ function NewChargePage() {
 
 function ChargesResultModal({ charges, participants, groupName, onClose }: { charges: MPCharge[]; participants: Participant[]; groupName: string; onClose: () => void }) {
   const [idx, setIdx] = useState(0);
+  const [manualFallbackUrl, setManualFallbackUrl] = useState<string | null>(null);
   const c = charges[idx];
   const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
   const phoneOf = (pid: string) => participants.find((p) => p.id === pid)?.phone ?? null;
@@ -305,7 +376,7 @@ function ChargesResultModal({ charges, participants, groupName, onClose }: { cha
     try {
       if (!charge) throw new Error("Nenhuma cobrança válida para enviar.");
       const url = whatsappUrlForCharge(charge, participants, groupName);
-      openWhatsappDirect(url, source);
+      openWhatsappDirect(url, source, setManualFallbackUrl);
     } catch (error) {
       logWhatsappFlowError(error);
     }
@@ -330,6 +401,15 @@ function ChargesResultModal({ charges, participants, groupName, onClose }: { cha
           <button onClick={onClose} className="text-2xl px-2">×</button>
         </div>
         <div className="p-6 space-y-4">
+          {manualFallbackUrl && (
+            <div className="border-2 border-canarinho bg-canarinho/10 p-3 text-center text-sm">
+              <div className="font-bold uppercase tracking-widest text-[10px] mb-2">Não foi possível abrir automaticamente.</div>
+              <a href={manualFallbackUrl} target="_blank" rel="noopener noreferrer" className="font-display text-lg text-pitch hover:underline">
+                Abrir {manualFallbackUrl.includes("wa.me") ? "WhatsApp" : "teste"} ↗
+              </a>
+            </div>
+          )}
+
           {firstOk ? (
             <button
               type="button"
@@ -346,6 +426,14 @@ function ChargesResultModal({ charges, participants, groupName, onClose }: { cha
           ) : (
             <div className="bg-red-50 border-2 border-red-200 p-3 text-sm text-red-800 text-center">Nenhuma cobrança válida para enviar</div>
           )}
+
+          <button
+            type="button"
+            onClick={() => openGoogleNavigationTest(setManualFallbackUrl)}
+            className="block text-center w-full border-2 border-ink/20 py-2 font-display text-sm tracking-wide hover:border-ink transition-colors"
+          >
+            TESTE TEMPORÁRIO: ABRIR GOOGLE
+          </button>
 
           <div className="text-center">
             <div className="text-[10px] font-bold uppercase tracking-widest text-faded">{c.description}</div>
