@@ -253,11 +253,27 @@ function ChargesResultModal({ charges, participants, groupName, onClose }: { cha
   const currentUrl = c.error ? null : waLinkOf(c);
   const firstUrl = firstOk ? waLinkOf(firstOk) : null;
 
-  const copy = async (text: string | null) => {
-    if (!text) return;
-    await navigator.clipboard.writeText(text);
-    toast.success("Pix copiado!");
+  const openWa = (url: string) => {
+    console.log("[WA] WHATSAPP_URL_CREATED", url);
+    try {
+      const w = window.open(url, "_blank", "noopener,noreferrer");
+      if (w && !w.closed) {
+        console.log("[WA] WHATSAPP_WINDOW_OPEN ok");
+        return;
+      }
+    } catch (e) {
+      console.error("[WA] WHATSAPP_WINDOW_OPEN_ERROR", e);
+    }
+    // Iframe sem allow-popups (preview Lovable): navega a aba TOP para fora do iframe
+    try {
+      console.log("[WA] WHATSAPP_WINDOW_OPEN fallback top.location");
+      (window.top ?? window).location.href = url;
+    } catch {
+      window.location.href = url;
+    }
   };
+
+
 
   return (
     <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
