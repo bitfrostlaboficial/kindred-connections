@@ -220,15 +220,6 @@ function GroupDashboard() {
     const [y, m] = ym.split("-").map(Number);
     return new Date(y, m - 1, 1).toLocaleDateString("pt-BR", { month: "long" }).toUpperCase();
   };
-  const availableMonths = useMemo(() => {
-    const set = new Set<string>(charges.map((c) => c.due_date.slice(0, 7)));
-    set.add(new Date().toISOString().slice(0, 7));
-    return Array.from(set).sort().reverse();
-  }, [charges]);
-  const visibleCharges = useMemo(
-    () => charges.filter((c) => c.due_date.slice(0, 7) === monthFilter),
-    [charges, monthFilter],
-  );
 
   return (
     <main className="max-w-6xl mx-auto px-4 md:px-6 py-8 md:py-12">
