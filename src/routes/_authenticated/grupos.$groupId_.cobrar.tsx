@@ -360,7 +360,7 @@ function ChargesResultModal({ charges, participants, groupName, onClose }: { cha
                 <p className="text-[10px] text-canarinho text-center">⚠ Sem telefone cadastrado — o WhatsApp abrirá sem destinatário.</p>
               )}
               <button
-                onClick={() => copy(paymentUrlOf(c.public_token))}
+                onClick={() => copy(paymentUrlOf(c.public_token), "Link copiado!")}
                 className="block text-center w-full border-2 border-pitch text-pitch py-2 font-display text-lg tracking-wide hover:bg-pitch hover:text-paper transition-colors"
               >
                 Copiar link da página de pagamento
