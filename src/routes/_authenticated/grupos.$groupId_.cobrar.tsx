@@ -30,16 +30,6 @@ function computeWhatsappUrl(charge: MPCharge, participants: Participant[], group
   return buildWaLink(phone, message);
 }
 
-function triggerAnchorClick(url: string) {
-  const a = document.createElement("a");
-  a.href = url;
-  a.target = "_blank";
-  a.rel = "noopener noreferrer";
-  a.style.display = "none";
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-}
 
 function NewChargePage() {
   const { groupId } = Route.useParams();
