@@ -297,9 +297,10 @@ function ChargesResultModal({ charges, participants, groupName, onClose }: { cha
               href={firstUrl}
               target="_blank"
               rel="noopener noreferrer"
-              onClick={() => {
+              onClick={(e) => {
+                e.preventDefault();
                 console.log("[WA] WHATSAPP_CLICK all → first", firstOk?.id);
-                console.log("[WA] WHATSAPP_URL_OPENED", firstUrl);
+                openWa(firstUrl);
                 if (okCharges.length > 1) {
                   toast.message(`Abrindo ${firstOk?.participant_name}. Use os botões abaixo para os outros ${okCharges.length - 1}.`);
                 }
@@ -328,9 +329,10 @@ function ChargesResultModal({ charges, participants, groupName, onClose }: { cha
                   href={currentUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.preventDefault();
                     console.log("[WA] WHATSAPP_CLICK", c.id);
-                    console.log("[WA] WHATSAPP_URL_OPENED", currentUrl);
+                    openWa(currentUrl);
                   }}
                   className="block text-center w-full bg-[#25D366] text-white py-2 font-display text-base tracking-wide hover:opacity-90 transition-opacity"
                 >
