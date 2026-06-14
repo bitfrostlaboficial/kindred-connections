@@ -652,6 +652,46 @@ function GroupDashboard() {
         pixKey={group.pix_key}
         pixRecipientName={group.pix_recipient_name}
       />
+
+      <Dialog open={viewing !== null} onOpenChange={(o) => !o && setViewing(null)}>
+        <DialogContent className="bg-paper border-2 border-ink max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-display text-2xl uppercase">Ficha do jogador</DialogTitle>
+            <DialogDescription className="font-serif italic text-xs">Informações cadastrais e de pelada.</DialogDescription>
+          </DialogHeader>
+          {viewing && (() => {
+            const prof = viewing.user_id ? profiles[viewing.user_id] : null;
+            const fullName = prof?.full_name || viewing.name;
+            const pos = viewing.position || prof?.preferred_position || "—";
+            const status = statusByParticipant.get(viewing.id) ?? "pendente";
+            const statusLabel = status === "vencido" ? "Vencido" : status === "pendente" ? "Pendente" : "Em dia";
+            return (
+              <div className="space-y-5 pt-2">
+                <div className="flex items-center gap-4">
+                  <div className="size-20 rounded-full bg-white border-2 border-ink overflow-hidden flex items-center justify-center font-display text-2xl uppercase shrink-0">
+                    {prof?.avatar_url ? (
+                      <img src={prof.avatar_url} alt={fullName} className="size-full object-cover" />
+                    ) : (
+                      <span>{fullName.split(" ").map((w) => w[0]).slice(0, 2).join("")}</span>
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-display text-xl leading-tight truncate">{fullName}</p>
+                    {!viewing.user_id && <p className="font-serif italic text-[11px] text-faded">Sem Conta Cadastrada</p>}
+                  </div>
+                </div>
+                <dl className="divide-y divide-ink/10 border-y border-ink/10">
+                  <Row label="Posição">{pos}</Row>
+                  <Row label="Última camisa">{viewing.jersey_number != null ? `Camisa #${viewing.jersey_number}` : "—"}</Row>
+                  <Row label="Tipo de pagamento">{viewing.type === "mensalista" ? "Mensalista" : "Avulso"}</Row>
+                  <Row label="Situação">{statusLabel}</Row>
+                  <Row label="WhatsApp">{viewing.phone || "—"}</Row>
+                </dl>
+              </div>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
     </main>
   );
 }
