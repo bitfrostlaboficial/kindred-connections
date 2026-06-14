@@ -319,11 +319,13 @@ function ChargesResultModal({ charges, participants, groupName, onClose }: { cha
 
   const sendChargeOnWhatsapp = (charge: MPCharge | undefined, source: string, event: MouseEvent<HTMLButtonElement>) => {
     console.log("WHATSAPP_BUTTON_CLICKED", { source, chargeId: charge?.id ?? null, disabled: event.currentTarget.disabled });
+    const popup = openBlankWindowFromClick(source);
     try {
       if (!charge) throw new Error("Nenhuma cobrança válida para enviar.");
       const url = whatsappUrlForCharge(charge, participants, groupName);
-      openWhatsappDirect(url, source, setManualFallbackUrl);
+      redirectPreopenedWindow(popup, url, source, setManualFallbackUrl);
     } catch (error) {
+      popup?.close();
       logWhatsappFlowError(error);
     }
   };
@@ -372,14 +374,6 @@ function ChargesResultModal({ charges, participants, groupName, onClose }: { cha
           ) : (
             <div className="bg-red-50 border-2 border-red-200 p-3 text-sm text-red-800 text-center">Nenhuma cobrança válida para enviar</div>
           )}
-
-          <button
-            type="button"
-            onClick={() => openGoogleNavigationTest(setManualFallbackUrl)}
-            className="block text-center w-full border-2 border-ink/20 py-2 font-display text-sm tracking-wide hover:border-ink transition-colors"
-          >
-            TESTE TEMPORÁRIO: ABRIR GOOGLE
-          </button>
 
           <div className="text-center">
             <div className="text-[10px] font-bold uppercase tracking-widest text-faded">{c.description}</div>
