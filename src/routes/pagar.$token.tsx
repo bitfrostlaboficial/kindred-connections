@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { getCheckoutInfo, payWithCard } from "@/lib/payments/checkout.functions";
+import { getCheckoutInfo, payWithCard, createStripePaymentIntent } from "@/lib/payments/checkout.functions";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/pagar/$token")({
