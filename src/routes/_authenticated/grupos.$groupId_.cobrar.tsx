@@ -46,56 +46,70 @@ function logNavigationEnvironment(source: string) {
   return env;
 }
 
+/**
+ * Open an external URL in a real new browser tab — even when the app is
+ * running inside a sandboxed iframe (Lovable preview).
+ *
+ * Strategy (in order):
+ *  1. Dynamic <a target="_blank" rel="noopener noreferrer"> + click()
+ *     — escapes the iframe and is NOT blocked by X-Frame-Options/CSP,
+ *     because the destination loads in a top-level browsing context.
+ *  2. window.top.location.href — navigates the top window when allowed.
+ *  3. Show manual fallback link to the user.
+ */
+function openExternalUrl(url: string, source: string, onManualFallback?: (url: string) => void) {
+  console.log("NAVIGATION_START", { source, url });
+  const env = logNavigationEnvironment(source);
+
+  // 1) Anchor click — works inside sandboxed iframes with allow-popups
+  try {
+    console.log("NAVIGATION_METHOD_SELECTED", { source, method: "anchor.click" });
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.target = "_blank";
+    anchor.rel = "noopener noreferrer";
+    anchor.style.display = "none";
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    console.log("NAVIGATION_SUCCESS", { source, method: "anchor.click" });
+    // We still show the manual fallback link in the modal so the user
+    // can re-open the URL if the popup was silently blocked.
+    onManualFallback?.(url);
+    return true;
+  } catch (anchorError) {
+    console.error("NAVIGATION_ERROR", { source, method: "anchor.click", error: anchorError });
+  }
+
+  // 2) window.top.location.href — only when iframe + same origin allow it
+  if (env.isIframe) {
+    try {
+      console.log("NAVIGATION_METHOD_SELECTED", { source, method: "window.top.location" });
+      if (window.top) {
+        window.top.location.href = url;
+        console.log("NAVIGATION_SUCCESS", { source, method: "window.top.location" });
+        return true;
+      }
+    } catch (topError) {
+      console.error("NAVIGATION_ERROR", { source, method: "window.top.location", error: topError });
+    }
+  }
+
+  // 3) Manual fallback
+  console.warn("NAVIGATION_MANUAL_FALLBACK", { source, url });
+  onManualFallback?.(url);
+  toast.error("Não foi possível abrir automaticamente. Use o link manual exibido na tela.");
+  return false;
+}
+
 function openWhatsappDirect(url: string, source: string, onManualFallback?: (url: string) => void) {
   console.log("WHATSAPP_WINDOW_OPEN_DIRECT", { source, url });
-  logNavigationEnvironment(source);
-  try {
-    const result = window.open(url, "_blank");
-    console.log("WINDOW_OPEN_RETURN", { source, result });
-    try { if (result) result.opener = null; } catch { /* noop */ }
-
-    if (!result) {
-      console.warn("WINDOW_OPEN_RETURN_NULL", { source, url });
-      onManualFallback?.(url);
-      console.log("WHATSAPP_LOCATION_HREF_FALLBACK", url);
-      window.location.href = url;
-      return false;
-    }
-
-    return true;
-  } catch (e) {
-    console.error("WHATSAPP_WINDOW_OPEN_ERROR", e);
-    onManualFallback?.(url);
-    try {
-      console.log("WHATSAPP_LOCATION_HREF_FALLBACK", url);
-      window.location.href = url;
-    } catch (locationError) {
-      console.error("WHATSAPP_LOCATION_HREF_ERROR", locationError);
-      toast.error("Não foi possível abrir automaticamente. Use o link manual exibido na tela.");
-    }
-    return false;
-  }
+  return openExternalUrl(url, source, onManualFallback);
 }
 
 function openGoogleNavigationTest(onManualFallback?: (url: string) => void) {
-  const url = "https://google.com";
-  const source = "google_window_open_test";
-  console.log("GOOGLE_WINDOW_OPEN_TEST_CLICKED", { url });
-  logNavigationEnvironment(source);
-  try {
-    const result = window.open(url, "_blank");
-    console.log("WINDOW_OPEN_RETURN", { source, result });
-    try { if (result) result.opener = null; } catch { /* noop */ }
-    if (!result) {
-      console.warn("GOOGLE_WINDOW_OPEN_RETURN_NULL", { url });
-      onManualFallback?.(url);
-      console.log("GOOGLE_LOCATION_HREF_FALLBACK", url);
-      window.location.href = url;
-    }
-  } catch (error) {
-    console.error("GOOGLE_WINDOW_OPEN_ERROR", error);
-    onManualFallback?.(url);
-  }
+  console.log("GOOGLE_WINDOW_OPEN_TEST_CLICKED");
+  openExternalUrl("https://google.com", "google_window_open_test", onManualFallback);
 }
 
 function logWhatsappFlowError(error: unknown) {
