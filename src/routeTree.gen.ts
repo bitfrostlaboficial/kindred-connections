@@ -15,6 +15,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as PagarTokenRouteImport } from './routes/pagar.$token'
 import { Route as EntrarTokenRouteImport } from './routes/entrar.$token'
 import { Route as ApiChargesRouteImport } from './routes/api/charges'
+import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated/perfil'
 import { Route as AuthenticatedPagamentosRouteImport } from './routes/_authenticated/pagamentos'
 import { Route as AuthenticatedMinhasPeladasRouteImport } from './routes/_authenticated/minhas-peladas'
 import { Route as AuthenticatedMinhasCobrancasRouteImport } from './routes/_authenticated/minhas-cobrancas'
@@ -57,6 +58,11 @@ const ApiChargesRoute = ApiChargesRouteImport.update({
   id: '/api/charges',
   path: '/api/charges',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedPerfilRoute = AuthenticatedPerfilRouteImport.update({
+  id: '/perfil',
+  path: '/perfil',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedPagamentosRoute = AuthenticatedPagamentosRouteImport.update({
   id: '/pagamentos',
@@ -141,6 +147,7 @@ export interface FileRoutesByFullPath {
   '/minhas-cobrancas': typeof AuthenticatedMinhasCobrancasRoute
   '/minhas-peladas': typeof AuthenticatedMinhasPeladasRoute
   '/pagamentos': typeof AuthenticatedPagamentosRoute
+  '/perfil': typeof AuthenticatedPerfilRoute
   '/api/charges': typeof ApiChargesRoute
   '/entrar/$token': typeof EntrarTokenRoute
   '/pagar/$token': typeof PagarTokenRoute
@@ -160,6 +167,7 @@ export interface FileRoutesByTo {
   '/minhas-cobrancas': typeof AuthenticatedMinhasCobrancasRoute
   '/minhas-peladas': typeof AuthenticatedMinhasPeladasRoute
   '/pagamentos': typeof AuthenticatedPagamentosRoute
+  '/perfil': typeof AuthenticatedPerfilRoute
   '/api/charges': typeof ApiChargesRoute
   '/entrar/$token': typeof EntrarTokenRoute
   '/pagar/$token': typeof PagarTokenRoute
@@ -182,6 +190,7 @@ export interface FileRoutesById {
   '/_authenticated/minhas-cobrancas': typeof AuthenticatedMinhasCobrancasRoute
   '/_authenticated/minhas-peladas': typeof AuthenticatedMinhasPeladasRoute
   '/_authenticated/pagamentos': typeof AuthenticatedPagamentosRoute
+  '/_authenticated/perfil': typeof AuthenticatedPerfilRoute
   '/api/charges': typeof ApiChargesRoute
   '/entrar/$token': typeof EntrarTokenRoute
   '/pagar/$token': typeof PagarTokenRoute
@@ -204,6 +213,7 @@ export interface FileRouteTypes {
     | '/minhas-cobrancas'
     | '/minhas-peladas'
     | '/pagamentos'
+    | '/perfil'
     | '/api/charges'
     | '/entrar/$token'
     | '/pagar/$token'
@@ -223,6 +233,7 @@ export interface FileRouteTypes {
     | '/minhas-cobrancas'
     | '/minhas-peladas'
     | '/pagamentos'
+    | '/perfil'
     | '/api/charges'
     | '/entrar/$token'
     | '/pagar/$token'
@@ -244,6 +255,7 @@ export interface FileRouteTypes {
     | '/_authenticated/minhas-cobrancas'
     | '/_authenticated/minhas-peladas'
     | '/_authenticated/pagamentos'
+    | '/_authenticated/perfil'
     | '/api/charges'
     | '/entrar/$token'
     | '/pagar/$token'
@@ -314,6 +326,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/charges'
       preLoaderRoute: typeof ApiChargesRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/perfil': {
+      id: '/_authenticated/perfil'
+      path: '/perfil'
+      fullPath: '/perfil'
+      preLoaderRoute: typeof AuthenticatedPerfilRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/pagamentos': {
       id: '/_authenticated/pagamentos'
@@ -434,6 +453,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedMinhasCobrancasRoute: typeof AuthenticatedMinhasCobrancasRoute
   AuthenticatedMinhasPeladasRoute: typeof AuthenticatedMinhasPeladasRoute
   AuthenticatedPagamentosRoute: typeof AuthenticatedPagamentosRoute
+  AuthenticatedPerfilRoute: typeof AuthenticatedPerfilRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -441,6 +461,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedMinhasCobrancasRoute: AuthenticatedMinhasCobrancasRoute,
   AuthenticatedMinhasPeladasRoute: AuthenticatedMinhasPeladasRoute,
   AuthenticatedPagamentosRoute: AuthenticatedPagamentosRoute,
+  AuthenticatedPerfilRoute: AuthenticatedPerfilRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
