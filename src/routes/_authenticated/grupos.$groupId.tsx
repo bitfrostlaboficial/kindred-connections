@@ -1,7 +1,8 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { List, MessageCircle, Trash2, QrCode } from "lucide-react";
+import { List, MessageCircle, Trash2, QrCode, Eye } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { PixColetivoDialog } from "@/components/pix-coletivo-dialog";
 import { AssistenteCobrancas } from "@/components/assistente-cobrancas";
 import { supabase } from "@/integrations/supabase/client";
@@ -29,7 +30,7 @@ export const Route = createFileRoute("/_authenticated/grupos/$groupId")({
 });
 
 type Group = { id: string; name: string; description: string | null; default_monthly_fee: number | null; pix_key: string | null; pix_recipient_name: string | null; invite_token: string | null };
-type Participant = { id: string; name: string; position: string | null; jersey_number: number | null; type: "mensalista" | "avulso"; is_active: boolean; phone: string | null };
+type Participant = { id: string; name: string; position: string | null; jersey_number: number | null; type: "mensalista" | "avulso"; is_active: boolean; phone: string | null; user_id: string | null };
 type Charge = { id: string; participant_id: string; description: string; amount: number; due_date: string; status: "pendente" | "pago" | "vencido" | "cancelado"; paid_at: string | null; public_token: string; created_at: string };
 type PPCInfo = { payment_account_id: string | null; account?: { id: string; account_label: string | null; external_user_id: string | null; is_active: boolean; expires_at: string | null; updated_at: string } | null };
 
@@ -64,6 +65,8 @@ function GroupDashboard() {
   const [ePosition, setEPosition] = useState("");
   const [eJersey, setEJersey] = useState("");
   const [eSaving, setESaving] = useState(false);
+  const [viewing, setViewing] = useState<Participant | null>(null);
+  const [profiles, setProfiles] = useState<Record<string, { full_name: string | null; avatar_url: string | null; preferred_position: string | null }>>({});
 
   const startEdit = (p: Participant) => {
     setEditingId(p.id);
@@ -107,8 +110,20 @@ function GroupDashboard() {
     ]);
     if (g.error || !g.data) { toast.error("Pelada não encontrada"); navigate({ to: "/grupos" }); return; }
     setGroup(g.data as Group);
-    setParticipants((p.data ?? []) as Participant[]);
+    const parts = (p.data ?? []) as Participant[];
+    setParticipants(parts);
     setCharges((c.data ?? []) as Charge[]);
+    const userIds = parts.map((x) => x.user_id).filter((u): u is string => !!u);
+    if (userIds.length) {
+      const { data: profs } = await supabase.from("profiles").select("id, full_name, avatar_url, preferred_position").in("id", userIds);
+      const map: Record<string, { full_name: string | null; avatar_url: string | null; preferred_position: string | null }> = {};
+      for (const r of (profs ?? []) as Array<{ id: string; full_name: string | null; avatar_url: string | null; preferred_position: string | null }>) {
+        map[r.id] = { full_name: r.full_name, avatar_url: r.avatar_url, preferred_position: r.preferred_position };
+      }
+      setProfiles(map);
+    } else {
+      setProfiles({});
+    }
     await loadFinance();
     setLoading(false);
   };
@@ -432,9 +447,10 @@ function GroupDashboard() {
             ) : (
               <div className="space-y-4">
                 {participants.map((p) => {
-                  const st = statusByParticipant.get(p.id);
+                  const st = statusByParticipant.get(p.id) ?? "pendente";
                   const dot = st === "vencido" ? "bg-destructive" : st === "pendente" ? "bg-canarinho" : "bg-pitch";
                   const label = st === "vencido" ? "Vencido" : st === "pendente" ? "Pendente" : "Em dia";
+                  const hasAccount = !!p.user_id;
                   const isEditing = editingId === p.id;
                   if (isEditing) {
                     return (
@@ -462,12 +478,28 @@ function GroupDashboard() {
                           <div className={`absolute -bottom-1 -right-1 size-3 ${dot} border-2 border-white rounded-full`} />
                         </div>
                         <div className="min-w-0">
-                          <p className="text-sm font-bold truncate">{p.name}</p>
+                          <p className="text-sm font-bold truncate">
+                            {p.name}
+                            {!hasAccount && <span className="ml-1 font-serif italic font-normal text-[10px] text-faded normal-case">(Sem Conta Cadastrada)</span>}
+                          </p>
                           <p className="text-[10px] text-faded uppercase tracking-tighter truncate">{p.position || p.type} · {label}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-1 shrink-0">
-                        {p.jersey_number && <div className="font-mono text-xs opacity-40 mr-1">#{p.jersey_number}</div>}
+                        {p.jersey_number != null && (
+                          <div className="font-mono text-xs mr-1">
+                            <span className="text-faded/60 font-serif italic mr-0.5">Camisa</span>
+                            <span className="opacity-60">#{p.jersey_number}</span>
+                          </div>
+                        )}
+                        <button
+                          type="button"
+                          aria-label={`Visualizar ${p.name}`}
+                          onClick={() => setViewing(p)}
+                          className="p-1.5 border border-ink/10 text-faded hover:text-pitch hover:border-pitch transition-colors"
+                        >
+                          <Eye className="size-3" />
+                        </button>
                         <button
                           type="button"
                           aria-label={`Editar ${p.name}`}
@@ -620,9 +652,59 @@ function GroupDashboard() {
         pixKey={group.pix_key}
         pixRecipientName={group.pix_recipient_name}
       />
+
+      <Dialog open={viewing !== null} onOpenChange={(o) => !o && setViewing(null)}>
+        <DialogContent className="bg-paper border-2 border-ink max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-display text-2xl uppercase">Ficha do jogador</DialogTitle>
+            <DialogDescription className="font-serif italic text-xs">Informações cadastrais e de pelada.</DialogDescription>
+          </DialogHeader>
+          {viewing && (() => {
+            const prof = viewing.user_id ? profiles[viewing.user_id] : null;
+            const fullName = prof?.full_name || viewing.name;
+            const pos = viewing.position || prof?.preferred_position || "—";
+            const status = statusByParticipant.get(viewing.id) ?? "pendente";
+            const statusLabel = status === "vencido" ? "Vencido" : status === "pendente" ? "Pendente" : "Em dia";
+            return (
+              <div className="space-y-5 pt-2">
+                <div className="flex items-center gap-4">
+                  <div className="size-20 rounded-full bg-white border-2 border-ink overflow-hidden flex items-center justify-center font-display text-2xl uppercase shrink-0">
+                    {prof?.avatar_url ? (
+                      <img src={prof.avatar_url} alt={fullName} className="size-full object-cover" />
+                    ) : (
+                      <span>{fullName.split(" ").map((w) => w[0]).slice(0, 2).join("")}</span>
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-display text-xl leading-tight truncate">{fullName}</p>
+                    {!viewing.user_id && <p className="font-serif italic text-[11px] text-faded">Sem Conta Cadastrada</p>}
+                  </div>
+                </div>
+                <dl className="divide-y divide-ink/10 border-y border-ink/10">
+                  <Row label="Posição">{pos}</Row>
+                  <Row label="Última camisa">{viewing.jersey_number != null ? `Camisa #${viewing.jersey_number}` : "—"}</Row>
+                  <Row label="Tipo de pagamento">{viewing.type === "mensalista" ? "Mensalista" : "Avulso"}</Row>
+                  <Row label="Situação">{statusLabel}</Row>
+                  <Row label="WhatsApp">{viewing.phone || "—"}</Row>
+                </dl>
+              </div>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
     </main>
   );
 }
+
+function Row({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between py-2.5 gap-3">
+      <dt className="text-[10px] font-bold uppercase tracking-widest text-faded">{label}</dt>
+      <dd className="text-sm font-semibold text-right truncate">{children}</dd>
+    </div>
+  );
+}
+
 
 function StatusBadge({ status }: { status: "pendente" | "pago" | "vencido" | "cancelado" }) {
   const map = {
