@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
+import { Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getProvider } from "@/lib/payments";
 import { toast } from "sonner";
