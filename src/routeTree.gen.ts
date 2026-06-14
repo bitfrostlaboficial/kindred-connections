@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PagarTokenRouteImport } from './routes/pagar.$token'
 import { Route as ApiChargesRouteImport } from './routes/api/charges'
+import { Route as AuthenticatedPagamentosRouteImport } from './routes/_authenticated/pagamentos'
 import { Route as AuthenticatedGruposRouteImport } from './routes/_authenticated/grupos'
 import { Route as AuthenticatedGruposIndexRouteImport } from './routes/_authenticated/grupos.index'
 import { Route as AuthenticatedGruposGroupIdRouteImport } from './routes/_authenticated/grupos.$groupId'
@@ -47,6 +48,11 @@ const ApiChargesRoute = ApiChargesRouteImport.update({
   id: '/api/charges',
   path: '/api/charges',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedPagamentosRoute = AuthenticatedPagamentosRouteImport.update({
+  id: '/pagamentos',
+  path: '/pagamentos',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedGruposRoute = AuthenticatedGruposRouteImport.update({
   id: '/grupos',
@@ -105,6 +111,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/grupos': typeof AuthenticatedGruposRouteWithChildren
+  '/pagamentos': typeof AuthenticatedPagamentosRoute
   '/api/charges': typeof ApiChargesRoute
   '/pagar/$token': typeof PagarTokenRoute
   '/grupos/$groupId': typeof AuthenticatedGruposGroupIdRoute
@@ -119,6 +126,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/pagamentos': typeof AuthenticatedPagamentosRoute
   '/api/charges': typeof ApiChargesRoute
   '/pagar/$token': typeof PagarTokenRoute
   '/grupos/$groupId': typeof AuthenticatedGruposGroupIdRoute
@@ -136,6 +144,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/_authenticated/grupos': typeof AuthenticatedGruposRouteWithChildren
+  '/_authenticated/pagamentos': typeof AuthenticatedPagamentosRoute
   '/api/charges': typeof ApiChargesRoute
   '/pagar/$token': typeof PagarTokenRoute
   '/_authenticated/grupos/$groupId': typeof AuthenticatedGruposGroupIdRoute
@@ -153,6 +162,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/grupos'
+    | '/pagamentos'
     | '/api/charges'
     | '/pagar/$token'
     | '/grupos/$groupId'
@@ -167,6 +177,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/pagamentos'
     | '/api/charges'
     | '/pagar/$token'
     | '/grupos/$groupId'
@@ -183,6 +194,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/auth'
     | '/_authenticated/grupos'
+    | '/_authenticated/pagamentos'
     | '/api/charges'
     | '/pagar/$token'
     | '/_authenticated/grupos/$groupId'
@@ -243,6 +255,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/charges'
       preLoaderRoute: typeof ApiChargesRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/pagamentos': {
+      id: '/_authenticated/pagamentos'
+      path: '/pagamentos'
+      fullPath: '/pagamentos'
+      preLoaderRoute: typeof AuthenticatedPagamentosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/grupos': {
       id: '/_authenticated/grupos'
@@ -329,10 +348,12 @@ const AuthenticatedGruposRouteWithChildren =
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedGruposRoute: typeof AuthenticatedGruposRouteWithChildren
+  AuthenticatedPagamentosRoute: typeof AuthenticatedPagamentosRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedGruposRoute: AuthenticatedGruposRouteWithChildren,
+  AuthenticatedPagamentosRoute: AuthenticatedPagamentosRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
@@ -352,13 +373,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
