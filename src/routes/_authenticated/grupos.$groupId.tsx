@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { List, MessageCircle } from "lucide-react";
+import { List, MessageCircle, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { buildWaLink, buildChargeMessage } from "@/lib/whatsapp";
@@ -182,6 +182,21 @@ function GroupDashboard() {
     load();
   };
 
+  const unmarkPaid = async (chargeId: string) => {
+    const { error } = await supabase.from("charges").update({ status: "pendente", paid_at: null }).eq("id", chargeId);
+    if (error) return toast.error(error.message);
+    toast.success("Cobrança desmarcada");
+    load();
+  };
+
+  const deleteCharge = async (chargeId: string) => {
+    if (!window.confirm("Excluir esta cobrança? Esta ação não pode ser desfeita.")) return;
+    const { error } = await supabase.from("charges").delete().eq("id", chargeId);
+    if (error) return toast.error(error.message);
+    setCharges((list) => list.filter((x) => x.id !== chargeId));
+    toast.success("Cobrança excluída");
+  };
+
   const availableMonths = useMemo(() => {
     const set = new Set<string>(charges.map((c) => c.due_date.slice(0, 7)));
     set.add(new Date().toISOString().slice(0, 7));
@@ -307,23 +322,32 @@ function GroupDashboard() {
                     <div className="col-span-2 text-sm font-bold tabular-nums">{fmt(Number(c.amount))}</div>
                     <div className="col-span-5 md:col-span-3 text-right flex items-center justify-end gap-1.5 flex-wrap">
                       <StatusBadge status={effStatus} />
-                      {c.status === "pendente" && (
-                        <>
-                          {waUrl && (
-                            <a
-                              href={waUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              title={`Reenviar para ${part?.name ?? "jogador"} no WhatsApp`}
-                              onClick={() => { if (!part?.phone) toast.message("Sem telefone — WhatsApp abrirá sem destinatário"); }}
-                              className="inline-flex items-center justify-center size-7 rounded-full bg-[#25D366] text-white hover:opacity-90 transition-opacity"
-                            >
-                              <MessageCircle className="size-3.5" />
-                            </a>
-                          )}
-                          <button onClick={() => markPaid(c.id)} className="text-[10px] font-semibold uppercase tracking-wider px-2 py-1 rounded border border-pitch/40 text-pitch hover:bg-pitch hover:text-paper transition-colors">Marcar pago</button>
-                        </>
+                      {c.status === "pendente" && waUrl && (
+                        <a
+                          href={waUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title={`Reenviar para ${part?.name ?? "jogador"} no WhatsApp`}
+                          onClick={() => { if (!part?.phone) toast.message("Sem telefone — WhatsApp abrirá sem destinatário"); }}
+                          className="inline-flex items-center justify-center size-7 rounded-full bg-[#25D366] text-white hover:opacity-90 transition-opacity"
+                        >
+                          <MessageCircle className="size-3.5" />
+                        </a>
                       )}
+                      {c.status === "pendente" ? (
+                        <button onClick={() => markPaid(c.id)} className="text-[10px] font-semibold uppercase tracking-wider px-2 py-1 rounded border border-pitch/40 text-pitch hover:bg-pitch hover:text-paper transition-colors">Marcar pago</button>
+                      ) : c.status === "pago" ? (
+                        <button onClick={() => unmarkPaid(c.id)} className="text-[10px] font-semibold uppercase tracking-wider px-2 py-1 rounded border border-ink/20 text-faded hover:border-canarinho hover:text-canarinho transition-colors">Desmarcar</button>
+                      ) : null}
+                      <button
+                        type="button"
+                        aria-label="Excluir cobrança"
+                        title="Excluir cobrança"
+                        onClick={() => deleteCharge(c.id)}
+                        className="inline-flex items-center justify-center size-7 rounded-full text-faded hover:text-destructive hover:bg-destructive/10 transition-colors"
+                      >
+                        <Trash2 className="size-3.5" />
+                      </button>
                     </div>
                   </div>
                 );
