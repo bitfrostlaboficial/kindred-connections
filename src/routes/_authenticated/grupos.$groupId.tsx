@@ -257,6 +257,20 @@ function GroupDashboard() {
           {group.description && <p className="font-serif italic text-sm text-faded mt-2">{group.description}</p>}
         </div>
         <div className="flex items-center gap-2 self-start flex-wrap">
+          {group.invite_token && (
+            <button
+              type="button"
+              onClick={async () => {
+                const url = `${window.location.origin}/entrar/${group.invite_token}`;
+                try { await navigator.clipboard.writeText(url); toast.success("Link de convite copiado"); }
+                catch { toast.error("Falha ao copiar"); }
+              }}
+              className="border-2 border-ink px-4 py-3 font-display text-base tracking-wide hover:bg-ink hover:text-paper transition-colors"
+              title="Copiar link de convite para jogadores"
+            >
+              CONVITE
+            </button>
+          )}
           <button
             type="button"
             onClick={() => setShowPixColetivo(true)}
