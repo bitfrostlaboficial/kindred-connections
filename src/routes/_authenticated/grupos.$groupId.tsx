@@ -257,64 +257,72 @@ function GroupDashboard() {
 
           {/* Súmula de Cobranças */}
           <section>
-            <h2 className="font-serif italic text-xl mb-4 border-l-4 border-canarinho pl-3">Súmula de Cobranças</h2>
-            <div className="bg-white border border-ink/10">
-              <div className="grid grid-cols-12 gap-2 p-4 border-b border-ink/20 bg-ink/5 font-bold text-[10px] uppercase tracking-widest">
+            <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
+              <h2 className="font-serif italic text-xl border-l-4 border-canarinho pl-3">Súmula de Cobranças</h2>
+              <label className="inline-flex items-center gap-2 bg-white border border-ink/15 rounded-full px-3 py-1.5 text-xs font-bold uppercase tracking-widest hover:border-ink/30 transition-colors cursor-pointer">
+                <List className="size-3.5 text-faded" />
+                <select
+                  value={monthFilter}
+                  onChange={(e) => setMonthFilter(e.target.value)}
+                  className="bg-transparent outline-none cursor-pointer pr-1"
+                >
+                  {availableMonths.map((m) => (
+                    <option key={m} value={m}>{monthLabel(m)}</option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            <div className="bg-white border border-ink/10 rounded-lg overflow-hidden">
+              <div className="grid grid-cols-12 gap-2 px-4 py-2.5 border-b border-ink/10 bg-ink/[0.03] font-bold text-[10px] uppercase tracking-widest text-faded">
                 <div className="col-span-5">Jogador / Referência</div>
                 <div className="col-span-2 hidden md:block">Vence</div>
                 <div className="col-span-2">Valor</div>
-                <div className="col-span-3 md:col-span-3 text-right">Status</div>
+                <div className="col-span-3 text-right">Status</div>
               </div>
-              {charges.length === 0 ? (
-                <div className="p-8 text-center font-serif italic text-faded">Nenhuma cobrança ainda. Crie a primeira!</div>
-              ) : charges.map((c, i) => {
+              {visibleCharges.length === 0 ? (
+                <div className="p-8 text-center font-serif italic text-faded text-sm">Nenhuma cobrança em {monthLabel(monthFilter)}.</div>
+              ) : visibleCharges.map((c, i) => {
                 const isOverdue = c.status === "pendente" && c.due_date < today;
                 const effStatus = isOverdue ? "vencido" : c.status;
+                const part = participants.find((p) => p.id === c.participant_id);
+                const waUrl = buildWaLink(part?.phone ?? null, buildChargeMessage({
+                  name: part?.name ?? "",
+                  groupName: group.name,
+                  amount: Number(c.amount),
+                  paymentUrl: typeof window !== "undefined" ? `${window.location.origin}/pagar/${c.public_token}` : `/pagar/${c.public_token}`,
+                }));
                 return (
-                  <div key={c.id} className="grid grid-cols-12 gap-2 p-4 border-b border-ink/5 items-center hover:bg-paper/50 transition-colors animate-row" style={{ animationDelay: `${i * 30}ms` }}>
-                    <div className="col-span-5 flex items-center gap-3">
-                      <div className="size-8 rounded-full bg-ink/5 border border-ink/10 flex items-center justify-center font-serif italic text-xs shrink-0">
+                  <div key={c.id} className="grid grid-cols-12 gap-2 px-4 py-2 border-b border-ink/5 items-center hover:bg-paper/50 transition-colors animate-row" style={{ animationDelay: `${i * 30}ms` }}>
+                    <div className="col-span-5 flex items-center gap-3 min-w-0">
+                      <div className="size-7 rounded-full bg-ink/5 border border-ink/10 flex items-center justify-center font-serif italic text-[10px] shrink-0">
                         {(pName2id.get(c.participant_id) ?? "?").split(" ").map((w) => w[0]).slice(0, 2).join("")}
                       </div>
                       <div className="min-w-0">
-                        <p className="font-bold text-sm truncate">{pName2id.get(c.participant_id) ?? "—"}</p>
+                        <p className="font-semibold text-sm truncate">{pName2id.get(c.participant_id) ?? "—"}</p>
                         <p className="text-[10px] text-faded truncate">{c.description}</p>
                       </div>
                     </div>
-                    <div className="col-span-2 text-xs font-mono hidden md:block">{fmtDate(c.due_date)}</div>
-                    <div className="col-span-2 font-display text-lg">{fmt(Number(c.amount))}</div>
-                    <div className="col-span-5 md:col-span-3 text-right flex items-center justify-end gap-2 flex-wrap">
+                    <div className="col-span-2 text-xs font-mono text-faded hidden md:block">{fmtDateShort(c.due_date)}</div>
+                    <div className="col-span-2 text-sm font-bold tabular-nums">{fmt(Number(c.amount))}</div>
+                    <div className="col-span-5 md:col-span-3 text-right flex items-center justify-end gap-1.5 flex-wrap">
                       <StatusBadge status={effStatus} />
                       {c.status === "pendente" && (
                         <>
-                          <button
-                            onClick={() => {
-                              const part = participants.find((p) => p.id === c.participant_id);
-                              const url = buildWaLink(part?.phone ?? null, buildChargeMessage({
-                                name: part?.name ?? "",
-                                groupName: group.name,
-                                amount: Number(c.amount),
-                                paymentUrl: `${window.location.origin}/pagar/${c.public_token}`,
-                              }));
-                              if (!url) return toast.error("Telefone não cadastrado");
-                              if (!part?.phone) toast.message("Sem telefone — WhatsApp abrirá sem destinatário");
-                              const anchor = document.createElement("a");
-                              anchor.href = url;
-                              anchor.target = "_blank";
-                              anchor.rel = "noopener noreferrer";
-                              anchor.style.display = "none";
-                              document.body.appendChild(anchor);
-                              anchor.click();
-                              document.body.removeChild(anchor);
-                            }}
-                            className="text-[10px] font-bold uppercase tracking-widest px-2 py-1 border border-[#25D366] text-[#25D366] hover:bg-[#25D366] hover:text-white transition-colors"
-                          >
-                            Reenviar WA
-                          </button>
-                          <button onClick={() => markPaid(c.id)} className="text-[10px] font-bold uppercase tracking-widest px-2 py-1 border border-pitch text-pitch hover:bg-pitch hover:text-paper transition-colors">Marcar pago</button>
+                          {waUrl && (
+                            <a
+                              href={waUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              title={`Reenviar para ${part?.name ?? "jogador"} no WhatsApp`}
+                              onClick={() => { if (!part?.phone) toast.message("Sem telefone — WhatsApp abrirá sem destinatário"); }}
+                              className="inline-flex items-center justify-center size-7 rounded-full bg-[#25D366] text-white hover:opacity-90 transition-opacity"
+                            >
+                              <MessageCircle className="size-3.5" />
+                            </a>
+                          )}
+                          <button onClick={() => markPaid(c.id)} className="text-[10px] font-semibold uppercase tracking-wider px-2 py-1 rounded border border-pitch/40 text-pitch hover:bg-pitch hover:text-paper transition-colors">Marcar pago</button>
                         </>
                       )}
-                      <Link to="/pagar/$token" params={{ token: c.public_token }} target="_blank" className="text-[10px] font-bold uppercase tracking-widest text-faded hover:text-pitch">Link ↗</Link>
                     </div>
                   </div>
                 );
