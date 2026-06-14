@@ -320,8 +320,6 @@ function ChargesResultModal({ charges, participants, groupName, onClose }: { cha
 
   const okCharges = charges.filter((x) => !x.error);
   const firstOk = okCharges[0];
-  const currentUrl = c.error ? null : waLinkOf(c);
-  const firstUrl = firstOk ? waLinkOf(firstOk) : null;
 
   const sendChargeOnWhatsapp = (charge: MPCharge | undefined, source: string, event: MouseEvent<HTMLButtonElement>) => {
     console.log("WHATSAPP_BUTTON_CLICKED", { source, chargeId: charge?.id ?? null, disabled: event.currentTarget.disabled, pointerEvents: window.getComputedStyle(event.currentTarget).pointerEvents });
@@ -354,15 +352,11 @@ function ChargesResultModal({ charges, participants, groupName, onClose }: { cha
           <button onClick={onClose} className="text-2xl px-2">×</button>
         </div>
         <div className="p-6 space-y-4">
-          {firstUrl ? (
-            <a
-              href={firstUrl}
-              target="_blank"
-              rel="noopener noreferrer"
+          {firstOk ? (
+            <button
+              type="button"
               onClick={(e) => {
-                e.preventDefault();
-                console.log("[WA] WHATSAPP_CLICK all → first", firstOk?.id);
-                openWa(firstUrl);
+                sendChargeOnWhatsapp(firstOk, "modal_send_first", e);
                 if (okCharges.length > 1) {
                   toast.message(`Abrindo ${firstOk?.participant_name}. Use os botões abaixo para os outros ${okCharges.length - 1}.`);
                 }
@@ -370,7 +364,7 @@ function ChargesResultModal({ charges, participants, groupName, onClose }: { cha
               className="block text-center w-full bg-[#25D366] text-white py-3 font-display text-lg tracking-wide shadow-ledger hover:opacity-90 transition-opacity"
             >
               ENVIAR {okCharges.length > 1 ? `PRIMEIRO (${okCharges.length} TOTAL)` : "PELO WHATSAPP"}
-            </a>
+            </button>
           ) : (
             <div className="bg-red-50 border-2 border-red-200 p-3 text-sm text-red-800 text-center">Nenhuma cobrança válida para enviar</div>
           )}
@@ -386,20 +380,14 @@ function ChargesResultModal({ charges, participants, groupName, onClose }: { cha
             </div>
           ) : (
             <>
-              {currentUrl ? (
-                <a
-                  href={currentUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    console.log("[WA] WHATSAPP_CLICK", c.id);
-                    openWa(currentUrl);
-                  }}
+              {!c.error ? (
+                <button
+                  type="button"
+                  onClick={(e) => sendChargeOnWhatsapp(c, "modal_send_current", e)}
                   className="block text-center w-full bg-[#25D366] text-white py-2 font-display text-base tracking-wide hover:opacity-90 transition-opacity"
                 >
                   ENVIAR PARA {c.participant_name.split(" ")[0].toUpperCase()} NO WHATSAPP
-                </a>
+                </button>
               ) : (
                 <div className="bg-yellow-50 border-2 border-yellow-300 p-2 text-xs text-yellow-900 text-center">Não foi possível gerar o link do WhatsApp</div>
               )}
