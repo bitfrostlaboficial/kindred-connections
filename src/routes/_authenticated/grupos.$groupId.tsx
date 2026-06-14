@@ -182,6 +182,16 @@ function GroupDashboard() {
     load();
   };
 
+  const availableMonths = useMemo(() => {
+    const set = new Set<string>(charges.map((c) => c.due_date.slice(0, 7)));
+    set.add(new Date().toISOString().slice(0, 7));
+    return Array.from(set).sort().reverse();
+  }, [charges]);
+  const visibleCharges = useMemo(
+    () => charges.filter((c) => c.due_date.slice(0, 7) === monthFilter),
+    [charges, monthFilter],
+  );
+
   if (loading || !group) return <main className="max-w-6xl mx-auto px-6 py-12 font-serif italic text-faded">Carregando súmula...</main>;
 
   const totalPago = charges.filter((c) => c.status === "pago").reduce((s, c) => s + Number(c.amount), 0);
