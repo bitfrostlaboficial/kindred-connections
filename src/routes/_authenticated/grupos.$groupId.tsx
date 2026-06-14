@@ -537,6 +537,31 @@ function GroupDashboard() {
           </div>
         )}
       </main>
+
+      <AlertDialog open={chargeToDelete !== null} onOpenChange={(open) => !open && setChargeToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-display text-2xl uppercase">Excluir cobrança?</AlertDialogTitle>
+            <AlertDialogDescription className="font-serif italic">
+              {chargeToDelete && (
+                <>Esta ação não pode ser desfeita. A cobrança de <strong className="not-italic font-semibold text-ink">{pName2id.get(chargeToDelete.participant_id) ?? "—"}</strong> ({fmt(Number(chargeToDelete.amount))}) será removida permanentemente.</>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                if (chargeToDelete) await deleteCharge(chargeToDelete.id);
+                setChargeToDelete(null);
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </main>
   );
 }
