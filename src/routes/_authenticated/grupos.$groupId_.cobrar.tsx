@@ -105,6 +105,7 @@ function NewChargePage() {
     e.preventDefault();
     if (selected.size === 0) return toast.error("Selecione ao menos um jogador");
     if (!group) return;
+    if (!defaultProvider) return toast.error("Nenhum gateway configurado para este grupo");
     setSaving(true);
 
     if (provider === "mercado_pago") {
