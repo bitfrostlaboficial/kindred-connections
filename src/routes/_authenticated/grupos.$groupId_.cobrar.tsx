@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
+import { Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getProvider } from "@/lib/payments";
 import { toast } from "sonner";
@@ -44,7 +45,7 @@ function NewChargePage() {
     return d.toISOString().slice(0, 10);
   });
   const [saving, setSaving] = useState(false);
-  const [provider, setProvider] = useState<ProviderId>("mercado_pago");
+  const [mpConfigured, setMpConfigured] = useState(false);
   const [results, setResults] = useState<MPCharge[] | null>(null);
 
   useEffect(() => {
@@ -68,7 +69,30 @@ function NewChargePage() {
         .map((x) => x.participant_id));
       setSelected(new Set(list.filter((x) => !paidIds.has(x.id)).map((x) => x.id)));
     });
+
+    // Detecta se o Mercado Pago está configurado para este grupo
+    (async () => {
+      const { data: cfg } = await supabase
+        .from("payment_provider_configs")
+        .select("payment_account_id")
+        .eq("group_id", groupId)
+        .eq("provider", "mercado_pago")
+        .maybeSingle();
+      const accountId = (cfg as { payment_account_id: string | null } | null)?.payment_account_id;
+      if (!accountId) return setMpConfigured(false);
+      const { data: acct } = await supabase
+        .from("payment_accounts" as never)
+        .select("is_active")
+        .eq("id", accountId)
+        .maybeSingle();
+      setMpConfigured(Boolean((acct as { is_active: boolean } | null)?.is_active));
+    })();
   }, [groupId]);
+
+  const pixConfigured = Boolean(group?.pix_key && group?.pix_recipient_name);
+  // Gateway padrão: prioriza Mercado Pago, depois Pix Manual
+  const defaultProvider: ProviderId | null = mpConfigured ? "mercado_pago" : pixConfigured ? "pix_manual" : null;
+  const provider: ProviderId = defaultProvider ?? "pix_manual";
 
   const toggle = (id: string) => {
     const s = new Set(selected);
@@ -81,6 +105,7 @@ function NewChargePage() {
     e.preventDefault();
     if (selected.size === 0) return toast.error("Selecione ao menos um jogador");
     if (!group) return;
+    if (!defaultProvider) return toast.error("Nenhum gateway configurado para este grupo");
     setSaving(true);
 
     if (provider === "mercado_pago") {
@@ -177,28 +202,28 @@ function NewChargePage() {
 
       <form onSubmit={submit} className="space-y-6 bg-white border-2 border-ink shadow-ledger-soft p-6">
         <div>
-          <label className="text-[10px] font-bold uppercase tracking-widest">Forma de cobrança</label>
+          <label className="text-[10px] font-bold uppercase tracking-widest">Formas de cobrança configuradas</label>
           <div className="grid grid-cols-2 gap-2 mt-1">
-            <button type="button" onClick={() => setProvider("mercado_pago")} className={`p-3 border-2 text-left ${provider === "mercado_pago" ? "border-pitch bg-pitch/5" : "border-ink/15"}`}>
-              <div className="font-display text-lg">MERCADO PAGO</div>
-              <div className="text-[10px] text-faded uppercase tracking-widest">Pix automático + webhook</div>
-            </button>
-            <button type="button" onClick={() => setProvider("pix_manual")} className={`p-3 border-2 text-left ${provider === "pix_manual" ? "border-pitch bg-pitch/5" : "border-ink/15"}`}>
-              <div className="font-display text-lg">PIX MANUAL</div>
-              <div className="text-[10px] text-faded uppercase tracking-widest">Sua chave Pix</div>
-            </button>
-            <button type="button" disabled className="p-3 border-2 border-ink/10 text-left opacity-50 cursor-not-allowed relative">
-              <div className="font-display text-lg">ASAAS</div>
-              <div className="text-[10px] text-faded uppercase tracking-widest">Pix, boleto e cartão</div>
-              <span className="absolute top-2 right-2 text-[9px] font-bold uppercase tracking-widest bg-canarinho text-ink px-1.5 py-0.5">Em breve</span>
-            </button>
-            <button type="button" disabled className="p-3 border-2 border-ink/10 text-left opacity-50 cursor-not-allowed relative">
-              <div className="font-display text-lg">INFINITEPAY</div>
-              <div className="text-[10px] text-faded uppercase tracking-widest">Pix e link de pagamento</div>
-              <span className="absolute top-2 right-2 text-[9px] font-bold uppercase tracking-widest bg-canarinho text-ink px-1.5 py-0.5">Em breve</span>
-            </button>
+            <GatewayInfoCard
+              name="MERCADO PAGO"
+              subtitle="Pix automático + webhook"
+              status={mpConfigured ? (defaultProvider === "mercado_pago" ? "padrao" : "configurado") : "nao_configurado"}
+            />
+            <GatewayInfoCard
+              name="PIX MANUAL"
+              subtitle="Sua chave Pix"
+              status={pixConfigured ? (defaultProvider === "pix_manual" ? "padrao" : "configurado") : "nao_configurado"}
+            />
+            <GatewayInfoCard name="ASAAS" subtitle="Pix, boleto e cartão" status="nao_configurado" />
+            <GatewayInfoCard name="INFINITEPAY" subtitle="Pix e link de pagamento" status="nao_configurado" />
           </div>
+          {!defaultProvider && (
+            <p className="mt-2 text-xs font-serif italic text-destructive">
+              Nenhum gateway configurado. Configure o Mercado Pago ou a chave Pix nas configurações financeiras do grupo.
+            </p>
+          )}
         </div>
+
 
         <div className="grid md:grid-cols-2 gap-4">
           <div className="md:col-span-2">
@@ -377,6 +402,23 @@ function ChargesResultModal({ charges, participants, groupName, onClose }: { cha
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+type GatewayStatus = "padrao" | "configurado" | "nao_configurado";
+
+function GatewayInfoCard({ name, subtitle, status }: { name: string; subtitle: string; status: GatewayStatus }) {
+  const active = status !== "nao_configurado";
+  return (
+    <div className={`relative p-3 border-2 border-ink/15 text-left ${active ? "" : "opacity-60"}`}>
+      <div className={`font-display text-lg ${active ? "" : "text-faded"}`}>{name}</div>
+      <div className="text-[10px] text-faded uppercase tracking-widest">{subtitle}</div>
+      <span className="absolute top-2 right-2 inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-widest text-faded">
+        {status === "padrao" && <>Padrão</>}
+        {status === "configurado" && (<><Check className="size-3" /> Configurado</>)}
+        {status === "nao_configurado" && <>Não configurado</>}
+      </span>
     </div>
   );
 }
