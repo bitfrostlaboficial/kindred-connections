@@ -256,7 +256,14 @@ function GroupDashboard() {
           <h1 className="font-display text-5xl md:text-6xl uppercase leading-none mt-2">{group.name}</h1>
           {group.description && <p className="font-serif italic text-sm text-faded mt-2">{group.description}</p>}
         </div>
-        <div className="flex items-center gap-2 self-start">
+        <div className="flex items-center gap-2 self-start flex-wrap">
+          <button
+            type="button"
+            onClick={() => setShowPixColetivo(true)}
+            className="border-2 border-ink px-4 py-3 font-display text-base tracking-wide hover:bg-ink hover:text-paper transition-colors inline-flex items-center gap-2"
+          >
+            <QrCode className="size-4" /> PIX COLETIVO
+          </button>
           <Link
             to="/grupos/$groupId/conferencia"
             params={{ groupId }}
