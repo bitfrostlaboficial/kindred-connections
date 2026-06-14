@@ -23,7 +23,13 @@ function GroupsPage() {
   const [creating, setCreating] = useState(false);
 
   const load = async () => {
-    const { data, error } = await supabase.from("groups").select("id,name,description,created_at").order("created_at", { ascending: false });
+    const { data: u } = await supabase.auth.getUser();
+    if (!u.user) { setLoading(false); return; }
+    const { data, error } = await supabase
+      .from("groups")
+      .select("id,name,description,created_at")
+      .eq("created_by", u.user.id)
+      .order("created_at", { ascending: false });
     if (error) toast.error(error.message);
     else setGroups(data ?? []);
     setLoading(false);
