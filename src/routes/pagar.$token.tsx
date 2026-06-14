@@ -202,7 +202,9 @@ function CardPanel({
   const [email, setEmail] = useState("");
   const [installments, setInstallments] = useState(1);
 
-  const canTryStripe = provider === "stripe";
+  if (provider === "stripe") {
+    return <StripeCardPanel token={token} amount={amount} publishableKey={publicKey} onPaid={onPaid} />;
+  }
 
   useEffect(() => {
     if (provider !== "mercado_pago" || !publicKey) return;
