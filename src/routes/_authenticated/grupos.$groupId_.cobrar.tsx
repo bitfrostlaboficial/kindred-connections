@@ -248,44 +248,10 @@ function ChargesResultModal({ charges, participants, groupName, onClose }: { cha
   const paymentUrlOf = (token: string) => `${typeof window !== "undefined" ? window.location.origin : ""}/pagar/${token}`;
   const waLinkOf = (ch: MPCharge) => buildWaLink(phoneOf(ch.participant_id), buildChargeMessage({ name: ch.participant_name, groupName, amount: ch.amount, paymentUrl: paymentUrlOf(ch.public_token) }));
 
-  const sendOne = (ch: MPCharge) => {
-    console.log("[WA] WHATSAPP_CLICK", ch.id);
-    const url = waLinkOf(ch);
-    if (!url) return toast.error("Telefone do jogador não cadastrado");
-    console.log("[WA] WHATSAPP_LINK_GENERATED", url);
-    const w = window.open(url, "_blank", "noopener,noreferrer");
-    if (!w) {
-      console.error("[WA] WHATSAPP_ERROR popup bloqueado");
-      // Fallback: navega na própria aba (preserva o gesto)
-      window.location.href = url;
-      return;
-    }
-    console.log("[WA] WHATSAPP_URL_OPENED");
-  };
-  const sendAll = () => {
-    console.log("[WA] WHATSAPP_CLICK all");
-    const ok = charges.filter((ch) => !ch.error);
-    if (ok.length === 0) return toast.error("Nenhuma cobrança válida");
-    // Abre o primeiro de forma síncrona (preserva user gesture); demais ficam
-    // disponíveis em botões individuais — abrir vários window.open em rajada é
-    // bloqueado por todos os browsers.
-    const [first, ...rest] = ok;
-    const url = waLinkOf(first);
-    if (!url) return toast.error("Telefone do jogador não cadastrado");
-    console.log("[WA] WHATSAPP_LINK_GENERATED", url);
-    const w = window.open(url, "_blank", "noopener,noreferrer");
-    if (!w) {
-      console.error("[WA] WHATSAPP_ERROR popup bloqueado");
-      window.location.href = url;
-      return;
-    }
-    console.log("[WA] WHATSAPP_URL_OPENED");
-    if (rest.length > 0) {
-      toast.message(`Enviado para ${first.participant_name}. Abra os próximos ${rest.length} pelos botões individuais.`);
-    } else {
-      toast.success("Abrindo WhatsApp...");
-    }
-  };
+  const okCharges = charges.filter((x) => !x.error);
+  const firstOk = okCharges[0];
+  const currentUrl = c.error ? null : waLinkOf(c);
+  const firstUrl = firstOk ? waLinkOf(firstOk) : null;
 
   const copy = async (text: string | null) => {
     if (!text) return;
@@ -304,12 +270,25 @@ function ChargesResultModal({ charges, participants, groupName, onClose }: { cha
           <button onClick={onClose} className="text-2xl px-2">×</button>
         </div>
         <div className="p-6 space-y-4">
-          <button
-            onClick={sendAll}
-            className="w-full bg-[#25D366] text-white py-3 font-display text-lg tracking-wide shadow-ledger hover:opacity-90 transition-opacity"
-          >
-            ENVIAR TODOS PELO WHATSAPP ({charges.filter((x) => !x.error).length})
-          </button>
+          {firstUrl ? (
+            <a
+              href={firstUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => {
+                console.log("[WA] WHATSAPP_CLICK all → first", firstOk?.id);
+                console.log("[WA] WHATSAPP_URL_OPENED", firstUrl);
+                if (okCharges.length > 1) {
+                  toast.message(`Abrindo ${firstOk?.participant_name}. Use os botões abaixo para os outros ${okCharges.length - 1}.`);
+                }
+              }}
+              className="block text-center w-full bg-[#25D366] text-white py-3 font-display text-lg tracking-wide shadow-ledger hover:opacity-90 transition-opacity"
+            >
+              ENVIAR {okCharges.length > 1 ? `PRIMEIRO (${okCharges.length} TOTAL)` : "PELO WHATSAPP"}
+            </a>
+          ) : (
+            <div className="bg-red-50 border-2 border-red-200 p-3 text-sm text-red-800 text-center">Nenhuma cobrança válida para enviar</div>
+          )}
 
           <div className="text-center">
             <div className="text-[10px] font-bold uppercase tracking-widest text-faded">{c.description}</div>
@@ -322,12 +301,22 @@ function ChargesResultModal({ charges, participants, groupName, onClose }: { cha
             </div>
           ) : (
             <>
-              <button
-                onClick={() => sendOne(c)}
-                className="w-full bg-[#25D366] text-white py-2 font-display text-base tracking-wide hover:opacity-90 transition-opacity"
-              >
-                ENVIAR PARA {c.participant_name.split(" ")[0].toUpperCase()} NO WHATSAPP
-              </button>
+              {currentUrl ? (
+                <a
+                  href={currentUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => {
+                    console.log("[WA] WHATSAPP_CLICK", c.id);
+                    console.log("[WA] WHATSAPP_URL_OPENED", currentUrl);
+                  }}
+                  className="block text-center w-full bg-[#25D366] text-white py-2 font-display text-base tracking-wide hover:opacity-90 transition-opacity"
+                >
+                  ENVIAR PARA {c.participant_name.split(" ")[0].toUpperCase()} NO WHATSAPP
+                </a>
+              ) : (
+                <div className="bg-yellow-50 border-2 border-yellow-300 p-2 text-xs text-yellow-900 text-center">Não foi possível gerar o link do WhatsApp</div>
+              )}
               {!phoneOf(c.participant_id) && (
                 <p className="text-[10px] text-canarinho text-center">⚠ Sem telefone cadastrado — o WhatsApp abrirá sem destinatário.</p>
               )}
