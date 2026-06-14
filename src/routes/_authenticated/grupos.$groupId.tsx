@@ -30,7 +30,7 @@ export const Route = createFileRoute("/_authenticated/grupos/$groupId")({
 });
 
 type Group = { id: string; name: string; description: string | null; default_monthly_fee: number | null; pix_key: string | null; pix_recipient_name: string | null; invite_token: string | null };
-type Participant = { id: string; name: string; position: string | null; jersey_number: number | null; type: "mensalista" | "avulso"; is_active: boolean; phone: string | null };
+type Participant = { id: string; name: string; position: string | null; jersey_number: number | null; type: "mensalista" | "avulso"; is_active: boolean; phone: string | null; user_id: string | null };
 type Charge = { id: string; participant_id: string; description: string; amount: number; due_date: string; status: "pendente" | "pago" | "vencido" | "cancelado"; paid_at: string | null; public_token: string; created_at: string };
 type PPCInfo = { payment_account_id: string | null; account?: { id: string; account_label: string | null; external_user_id: string | null; is_active: boolean; expires_at: string | null; updated_at: string } | null };
 
