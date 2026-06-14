@@ -353,7 +353,7 @@ function GroupDashboard() {
                         type="button"
                         aria-label="Excluir cobrança"
                         title="Excluir cobrança"
-                        onClick={() => deleteCharge(c.id)}
+                        onClick={() => setChargeToDelete(c)}
                         className="inline-flex items-center justify-center size-7 rounded-full text-faded hover:text-destructive hover:bg-destructive/10 transition-colors"
                       >
                         <Trash2 className="size-3.5" />
