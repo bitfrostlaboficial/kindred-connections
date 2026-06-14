@@ -33,7 +33,7 @@ export class PixManualProvider implements IPaymentProvider {
 }
 
 // Monta um BR Code Pix estático (EMV) compatível com qualquer app bancário BR.
-function buildPixPayload(args: {
+// re-exported from ./pix-payload
   key: string;
   name: string;
   city: string;
