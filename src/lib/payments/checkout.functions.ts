@@ -147,3 +147,35 @@ export const payWithCard = createServerFn({ method: "POST" })
       statusDetail: result.statusDetail ?? null,
     };
   });
+
+export const createStripePaymentIntent = createServerFn({ method: "POST" })
+  .inputValidator((data: InfoInput) => ({ token: String(data?.token ?? "") }))
+  .handler(async ({ data }) => {
+    const { supabaseAdmin, charge } = await loadChargeByToken(data.token);
+    if (charge.status === "pago") return { status: "pago" as const };
+    if (charge.status === "cancelado") throw new Error("Cobrança cancelada");
+    if (charge.provider !== "stripe") throw new Error("Provedor desta cobrança não é Stripe");
+    const acct = await loadAccountForGroup(supabaseAdmin, charge.group_id, "stripe");
+    if (!acct) throw new Error("Conta Stripe do organizador não encontrada");
+    if (!acct.public_key) throw new Error("Publishable Key da Stripe não cadastrada");
+
+    const { stripeCreatePaymentIntent } = await import("./stripe.server");
+    const result = await stripeCreatePaymentIntent({
+      secretKey: acct.access_token,
+      amount: Number(charge.amount),
+      description: charge.description,
+      externalId: charge.id,
+    });
+
+    await supabaseAdmin
+      .from("charges")
+      .update({ provider_charge_id: result.providerChargeId, payment_method: "card" })
+      .eq("id", charge.id);
+
+    return {
+      status: "pendente" as const,
+      clientSecret: result.clientSecret,
+      publishableKey: acct.public_key,
+      providerChargeId: result.providerChargeId,
+    };
+  });

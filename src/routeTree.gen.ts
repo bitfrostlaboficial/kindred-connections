@@ -17,6 +17,7 @@ import { Route as ApiChargesRouteImport } from './routes/api/charges'
 import { Route as AuthenticatedGruposRouteImport } from './routes/_authenticated/grupos'
 import { Route as AuthenticatedGruposIndexRouteImport } from './routes/_authenticated/grupos.index'
 import { Route as AuthenticatedGruposGroupIdRouteImport } from './routes/_authenticated/grupos.$groupId'
+import { Route as ApiPublicWebhooksStripeRouteImport } from './routes/api/public/webhooks/stripe'
 import { Route as ApiPublicWebhooksMercadopagoRouteImport } from './routes/api/public/webhooks/mercadopago'
 import { Route as ApiOauthMercadopagoStartRouteImport } from './routes/api/oauth/mercadopago/start'
 import { Route as ApiOauthMercadopagoCallbackRouteImport } from './routes/api/oauth/mercadopago/callback'
@@ -63,6 +64,11 @@ const AuthenticatedGruposGroupIdRoute =
     path: '/$groupId',
     getParentRoute: () => AuthenticatedGruposRoute,
   } as any)
+const ApiPublicWebhooksStripeRoute = ApiPublicWebhooksStripeRouteImport.update({
+  id: '/api/public/webhooks/stripe',
+  path: '/api/public/webhooks/stripe',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicWebhooksMercadopagoRoute =
   ApiPublicWebhooksMercadopagoRouteImport.update({
     id: '/api/public/webhooks/mercadopago',
@@ -100,6 +106,7 @@ export interface FileRoutesByFullPath {
   '/api/oauth/mercadopago/callback': typeof ApiOauthMercadopagoCallbackRoute
   '/api/oauth/mercadopago/start': typeof ApiOauthMercadopagoStartRoute
   '/api/public/webhooks/mercadopago': typeof ApiPublicWebhooksMercadopagoRoute
+  '/api/public/webhooks/stripe': typeof ApiPublicWebhooksStripeRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -112,6 +119,7 @@ export interface FileRoutesByTo {
   '/api/oauth/mercadopago/callback': typeof ApiOauthMercadopagoCallbackRoute
   '/api/oauth/mercadopago/start': typeof ApiOauthMercadopagoStartRoute
   '/api/public/webhooks/mercadopago': typeof ApiPublicWebhooksMercadopagoRoute
+  '/api/public/webhooks/stripe': typeof ApiPublicWebhooksStripeRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -127,6 +135,7 @@ export interface FileRoutesById {
   '/api/oauth/mercadopago/callback': typeof ApiOauthMercadopagoCallbackRoute
   '/api/oauth/mercadopago/start': typeof ApiOauthMercadopagoStartRoute
   '/api/public/webhooks/mercadopago': typeof ApiPublicWebhooksMercadopagoRoute
+  '/api/public/webhooks/stripe': typeof ApiPublicWebhooksStripeRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -142,6 +151,7 @@ export interface FileRouteTypes {
     | '/api/oauth/mercadopago/callback'
     | '/api/oauth/mercadopago/start'
     | '/api/public/webhooks/mercadopago'
+    | '/api/public/webhooks/stripe'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -154,6 +164,7 @@ export interface FileRouteTypes {
     | '/api/oauth/mercadopago/callback'
     | '/api/oauth/mercadopago/start'
     | '/api/public/webhooks/mercadopago'
+    | '/api/public/webhooks/stripe'
   id:
     | '__root__'
     | '/'
@@ -168,6 +179,7 @@ export interface FileRouteTypes {
     | '/api/oauth/mercadopago/callback'
     | '/api/oauth/mercadopago/start'
     | '/api/public/webhooks/mercadopago'
+    | '/api/public/webhooks/stripe'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -179,6 +191,7 @@ export interface RootRouteChildren {
   ApiOauthMercadopagoCallbackRoute: typeof ApiOauthMercadopagoCallbackRoute
   ApiOauthMercadopagoStartRoute: typeof ApiOauthMercadopagoStartRoute
   ApiPublicWebhooksMercadopagoRoute: typeof ApiPublicWebhooksMercadopagoRoute
+  ApiPublicWebhooksStripeRoute: typeof ApiPublicWebhooksStripeRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -238,6 +251,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/grupos/$groupId'
       preLoaderRoute: typeof AuthenticatedGruposGroupIdRouteImport
       parentRoute: typeof AuthenticatedGruposRoute
+    }
+    '/api/public/webhooks/stripe': {
+      id: '/api/public/webhooks/stripe'
+      path: '/api/public/webhooks/stripe'
+      fullPath: '/api/public/webhooks/stripe'
+      preLoaderRoute: typeof ApiPublicWebhooksStripeRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/public/webhooks/mercadopago': {
       id: '/api/public/webhooks/mercadopago'
@@ -305,6 +325,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiOauthMercadopagoCallbackRoute: ApiOauthMercadopagoCallbackRoute,
   ApiOauthMercadopagoStartRoute: ApiOauthMercadopagoStartRoute,
   ApiPublicWebhooksMercadopagoRoute: ApiPublicWebhooksMercadopagoRoute,
+  ApiPublicWebhooksStripeRoute: ApiPublicWebhooksStripeRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
