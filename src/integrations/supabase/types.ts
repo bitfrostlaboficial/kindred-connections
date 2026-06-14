@@ -152,6 +152,7 @@ export type Database = {
           default_monthly_fee: number | null
           description: string | null
           id: string
+          invite_token: string | null
           name: string
           pix_key: string | null
           pix_recipient_name: string | null
@@ -163,6 +164,7 @@ export type Database = {
           default_monthly_fee?: number | null
           description?: string | null
           id?: string
+          invite_token?: string | null
           name: string
           pix_key?: string | null
           pix_recipient_name?: string | null
@@ -174,6 +176,7 @@ export type Database = {
           default_monthly_fee?: number | null
           description?: string | null
           id?: string
+          invite_token?: string | null
           name?: string
           pix_key?: string | null
           pix_recipient_name?: string | null
@@ -194,6 +197,7 @@ export type Database = {
           position: string | null
           type: string
           updated_at: string
+          user_id: string | null
         }
         Insert: {
           created_at?: string
@@ -207,6 +211,7 @@ export type Database = {
           position?: string | null
           type?: string
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
           created_at?: string
@@ -220,6 +225,7 @@ export type Database = {
           position?: string | null
           type?: string
           updated_at?: string
+          user_id?: string | null
         }
         Relationships: [
           {
