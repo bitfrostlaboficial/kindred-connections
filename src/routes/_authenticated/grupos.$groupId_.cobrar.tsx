@@ -301,14 +301,13 @@ function ChargesResultModal({ charges, participants, groupName, onClose }: { cha
   const firstOk = okCharges[0];
 
   const sendChargeOnWhatsapp = (charge: MPCharge | undefined, source: string, event: MouseEvent<HTMLButtonElement>) => {
-    console.log("WHATSAPP_BUTTON_CLICKED", { source, chargeId: charge?.id ?? null, disabled: event.currentTarget.disabled, pointerEvents: window.getComputedStyle(event.currentTarget).pointerEvents });
-    const popup = openWhatsappPopup(source);
+    console.log("WHATSAPP_BUTTON_CLICKED", { source, chargeId: charge?.id ?? null, disabled: event.currentTarget.disabled });
     try {
       if (!charge) throw new Error("Nenhuma cobrança válida para enviar.");
       const url = whatsappUrlForCharge(charge, participants, groupName);
-      sendWhatsappToPopup(popup, url, source);
+      openWhatsappDirect(url, source);
     } catch (error) {
-      logWhatsappFlowError(error, popup);
+      logWhatsappFlowError(error);
     }
   };
 
