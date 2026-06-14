@@ -310,13 +310,6 @@ function ChargesResultModal({ charges, participants, groupName, onClose }: { cha
   const c = charges[idx];
   const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
   const phoneOf = (pid: string) => participants.find((p) => p.id === pid)?.phone ?? null;
-  const waLinkOf = (ch: MPCharge) => {
-    try {
-      return whatsappUrlForCharge(ch, participants, groupName);
-    } catch {
-      return null;
-    }
-  };
 
   const okCharges = charges.filter((x) => !x.error);
   const firstOk = okCharges[0];
