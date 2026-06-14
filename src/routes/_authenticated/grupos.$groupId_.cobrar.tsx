@@ -30,16 +30,6 @@ function computeWhatsappUrl(charge: MPCharge, participants: Participant[], group
   return buildWaLink(phone, message);
 }
 
-function triggerAnchorClick(url: string) {
-  const a = document.createElement("a");
-  a.href = url;
-  a.target = "_blank";
-  a.rel = "noopener noreferrer";
-  a.style.display = "none";
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-}
 
 function NewChargePage() {
   const { groupId } = Route.useParams();
@@ -292,14 +282,8 @@ function ChargesResultModal({ charges, participants, groupName, onClose }: { cha
   const currentWaUrl = waUrls.get(c.id) ?? null;
   const firstWaUrl = firstOk ? waUrls.get(firstOk.id) ?? null : null;
 
-  const sendChargeOnWhatsapp = (url: string | null, source: string) => {
-    console.log("WHATSAPP_BUTTON_CLICKED", { source, hasUrl: Boolean(url) });
-    if (!url) {
-      toast.error("Link do WhatsApp indisponível. Use o link manual exibido na tela.");
-      return;
-    }
-    triggerAnchorClick(url);
-  };
+
+
 
   const copy = async (text: string | null) => {
     if (!text) return;
@@ -348,23 +332,14 @@ function ChargesResultModal({ charges, participants, groupName, onClose }: { cha
           ) : (
             <>
               {currentWaUrl ? (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => sendChargeOnWhatsapp(currentWaUrl, "modal_send_current")}
-                    className="block text-center w-full bg-[#25D366] text-white py-2 font-display text-base tracking-wide hover:opacity-90 transition-opacity"
-                  >
-                    ENVIAR PARA {c.participant_name.split(" ")[0].toUpperCase()} NO WHATSAPP
-                  </button>
-                  <a
-                    href={currentWaUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block text-center text-xs font-bold uppercase tracking-widest text-pitch hover:underline"
-                  >
-                    Abrir WhatsApp manualmente ↗
-                  </a>
-                </>
+                <a
+                  href={currentWaUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block text-center w-full bg-[#25D366] text-white py-2 font-display text-base tracking-wide hover:opacity-90 transition-opacity"
+                >
+                  ENVIAR PARA {c.participant_name.split(" ")[0].toUpperCase()} NO WHATSAPP ↗
+                </a>
               ) : (
                 <div className="bg-yellow-50 border-2 border-yellow-300 p-2 text-xs text-yellow-900 text-center">Não foi possível gerar o link do WhatsApp</div>
               )}
