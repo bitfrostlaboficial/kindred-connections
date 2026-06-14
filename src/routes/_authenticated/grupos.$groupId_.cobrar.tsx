@@ -273,25 +273,32 @@ function NewChargePage() {
 
 function ChargesResultModal({ charges, participants, groupName, onClose }: { charges: MPCharge[]; participants: Participant[]; groupName: string; onClose: () => void }) {
   const [idx, setIdx] = useState(0);
-  const [manualFallbackUrl, setManualFallbackUrl] = useState<string | null>(null);
   const c = charges[idx];
   const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
   const phoneOf = (pid: string) => participants.find((p) => p.id === pid)?.phone ?? null;
 
+  // Pré-computa todas as URLs do WhatsApp de forma síncrona ao montar o modal.
+  const waUrls = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const ch of charges) {
+      const url = computeWhatsappUrl(ch, participants, groupName);
+      if (url) map.set(ch.id, url);
+    }
+    return map;
+  }, [charges, participants, groupName]);
+
   const okCharges = charges.filter((x) => !x.error);
   const firstOk = okCharges[0];
+  const currentWaUrl = waUrls.get(c.id) ?? null;
+  const firstWaUrl = firstOk ? waUrls.get(firstOk.id) ?? null : null;
 
-  const sendChargeOnWhatsapp = (charge: MPCharge | undefined, source: string, event: MouseEvent<HTMLButtonElement>) => {
-    console.log("WHATSAPP_BUTTON_CLICKED", { source, chargeId: charge?.id ?? null, disabled: event.currentTarget.disabled });
-    const popup = openBlankWindowFromClick(source);
-    try {
-      if (!charge) throw new Error("Nenhuma cobrança válida para enviar.");
-      const url = whatsappUrlForCharge(charge, participants, groupName);
-      redirectPreopenedWindow(popup, url, source, setManualFallbackUrl);
-    } catch (error) {
-      popup?.close();
-      logWhatsappFlowError(error);
+  const sendChargeOnWhatsapp = (url: string | null, source: string) => {
+    console.log("WHATSAPP_BUTTON_CLICKED", { source, hasUrl: Boolean(url) });
+    if (!url) {
+      toast.error("Link do WhatsApp indisponível. Use o link manual exibido na tela.");
+      return;
     }
+    triggerAnchorClick(url);
   };
 
   const copy = async (text: string | null) => {
@@ -299,8 +306,6 @@ function ChargesResultModal({ charges, participants, groupName, onClose }: { cha
     await navigator.clipboard.writeText(text);
     toast.success("Pix copiado!");
   };
-
-
 
   return (
     <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
@@ -313,28 +318,20 @@ function ChargesResultModal({ charges, participants, groupName, onClose }: { cha
           <button onClick={onClose} className="text-2xl px-2">×</button>
         </div>
         <div className="p-6 space-y-4">
-          {manualFallbackUrl && (
-            <div className="border-2 border-canarinho bg-canarinho/10 p-3 text-center text-sm">
-              <div className="font-bold uppercase tracking-widest text-[10px] mb-2">Não foi possível abrir automaticamente.</div>
-              <a href={manualFallbackUrl} target="_blank" rel="noopener noreferrer" className="font-display text-lg text-pitch hover:underline">
-                Abrir {manualFallbackUrl.includes("wa.me") ? "WhatsApp" : "teste"} ↗
-              </a>
-            </div>
-          )}
-
-          {firstOk ? (
-            <button
-              type="button"
-              onClick={(e) => {
-                sendChargeOnWhatsapp(firstOk, "modal_send_first", e);
+          {firstOk && firstWaUrl ? (
+            <a
+              href={firstWaUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => {
                 if (okCharges.length > 1) {
-                  toast.message(`Abrindo ${firstOk?.participant_name}. Use os botões abaixo para os outros ${okCharges.length - 1}.`);
+                  toast.message(`Abrindo ${firstOk.participant_name}. Use os botões abaixo para os outros ${okCharges.length - 1}.`);
                 }
               }}
               className="block text-center w-full bg-[#25D366] text-white py-3 font-display text-lg tracking-wide shadow-ledger hover:opacity-90 transition-opacity"
             >
-              ENVIAR {okCharges.length > 1 ? `PRIMEIRO (${okCharges.length} TOTAL)` : "PELO WHATSAPP"}
-            </button>
+              ENVIAR {okCharges.length > 1 ? `PRIMEIRO (${okCharges.length} TOTAL)` : "PELO WHATSAPP"} ↗
+            </a>
           ) : (
             <div className="bg-red-50 border-2 border-red-200 p-3 text-sm text-red-800 text-center">Nenhuma cobrança válida para enviar</div>
           )}
@@ -350,20 +347,32 @@ function ChargesResultModal({ charges, participants, groupName, onClose }: { cha
             </div>
           ) : (
             <>
-              {!c.error ? (
-                <button
-                  type="button"
-                  onClick={(e) => sendChargeOnWhatsapp(c, "modal_send_current", e)}
-                  className="block text-center w-full bg-[#25D366] text-white py-2 font-display text-base tracking-wide hover:opacity-90 transition-opacity"
-                >
-                  ENVIAR PARA {c.participant_name.split(" ")[0].toUpperCase()} NO WHATSAPP
-                </button>
+              {currentWaUrl ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => sendChargeOnWhatsapp(currentWaUrl, "modal_send_current")}
+                    className="block text-center w-full bg-[#25D366] text-white py-2 font-display text-base tracking-wide hover:opacity-90 transition-opacity"
+                  >
+                    ENVIAR PARA {c.participant_name.split(" ")[0].toUpperCase()} NO WHATSAPP
+                  </button>
+                  <a
+                    href={currentWaUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block text-center text-xs font-bold uppercase tracking-widest text-pitch hover:underline"
+                  >
+                    Abrir WhatsApp manualmente ↗
+                  </a>
+                </>
               ) : (
                 <div className="bg-yellow-50 border-2 border-yellow-300 p-2 text-xs text-yellow-900 text-center">Não foi possível gerar o link do WhatsApp</div>
               )}
               {!phoneOf(c.participant_id) && (
                 <p className="text-[10px] text-canarinho text-center">⚠ Sem telefone cadastrado — o WhatsApp abrirá sem destinatário.</p>
               )}
+
+
 
               {c.pix_qr_code && (
                 <div className="flex justify-center">
