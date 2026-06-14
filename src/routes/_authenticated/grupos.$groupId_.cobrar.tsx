@@ -15,101 +15,33 @@ type Group = { id: string; name: string; default_monthly_fee: number | null; pix
 type ProviderId = "pix_manual" | "mercado_pago";
 type MPCharge = { id: string; participant_id: string; participant_name: string; amount: number; description: string; status: string; pix_copy_paste: string | null; pix_qr_code: string | null; payment_link: string | null; public_token: string; error?: string };
 
-function logNavigationEnvironment(source: string) {
-  const env = {
-    source,
-    host: window.location.host,
-    isLovablePreview: window.location.host.includes("lovable.app"),
-    isIframe: false,
-    sandbox: null as string | null,
-    allowPopups: null as boolean | null,
-    allowPopupsToEscapeSandbox: null as boolean | null,
-  };
-
+function openBlankWindowFromClick(source: string) {
   try {
-    env.isIframe = window.self !== window.top;
-  } catch {
-    env.isIframe = true;
+    const popup = window.open("", "_blank");
+    console.log("WHATSAPP_WINDOW_PREOPEN", { source, opened: Boolean(popup) });
+    return popup;
+  } catch (error) {
+    console.error("WHATSAPP_WINDOW_PREOPEN_ERROR", { source, error });
+    return null;
   }
-
-  try {
-    const frame = window.frameElement as HTMLIFrameElement | null;
-    const sandbox = frame?.getAttribute("sandbox") ?? null;
-    env.sandbox = sandbox;
-    env.allowPopups = sandbox ? sandbox.split(/\s+/).includes("allow-popups") : null;
-    env.allowPopupsToEscapeSandbox = sandbox ? sandbox.split(/\s+/).includes("allow-popups-to-escape-sandbox") : null;
-  } catch {
-    env.sandbox = "inaccessible";
-  }
-
-  console.log("NAVIGATION_ENVIRONMENT", env);
-  return env;
 }
 
-/**
- * Open an external URL in a real new browser tab — even when the app is
- * running inside a sandboxed iframe (Lovable preview).
- *
- * Strategy (in order):
- *  1. Dynamic <a target="_blank" rel="noopener noreferrer"> + click()
- *     — escapes the iframe and is NOT blocked by X-Frame-Options/CSP,
- *     because the destination loads in a top-level browsing context.
- *  2. window.top.location.href — navigates the top window when allowed.
- *  3. Show manual fallback link to the user.
- */
-function openExternalUrl(url: string, source: string, onManualFallback?: (url: string) => void) {
-  console.log("NAVIGATION_START", { source, url });
-  const env = logNavigationEnvironment(source);
-
-  // 1) Anchor click — works inside sandboxed iframes with allow-popups
+function redirectPreopenedWindow(popup: Window | null, url: string, source: string, onManualFallback: (url: string) => void) {
+  console.log("WHATSAPP_WINDOW_OPEN_DIRECT", { source, url, hasPreopenedWindow: Boolean(popup) });
+  onManualFallback(url);
+  if (!popup) {
+    toast.error("Não foi possível abrir automaticamente. Use o link manual exibido na tela.");
+    return false;
+  }
   try {
-    console.log("NAVIGATION_METHOD_SELECTED", { source, method: "anchor.click" });
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.target = "_blank";
-    anchor.rel = "noopener noreferrer";
-    anchor.style.display = "none";
-    document.body.appendChild(anchor);
-    anchor.click();
-    document.body.removeChild(anchor);
-    console.log("NAVIGATION_SUCCESS", { source, method: "anchor.click" });
-    // We still show the manual fallback link in the modal so the user
-    // can re-open the URL if the popup was silently blocked.
-    onManualFallback?.(url);
+    popup.location.href = url;
+    console.log("WHATSAPP_WINDOW_REDIRECT_SUCCESS", { source, url });
     return true;
-  } catch (anchorError) {
-    console.error("NAVIGATION_ERROR", { source, method: "anchor.click", error: anchorError });
+  } catch (error) {
+    console.error("WHATSAPP_WINDOW_REDIRECT_ERROR", { source, error });
+    toast.error("Não foi possível abrir automaticamente. Use o link manual exibido na tela.");
+    return false;
   }
-
-  // 2) window.top.location.href — only when iframe + same origin allow it
-  if (env.isIframe) {
-    try {
-      console.log("NAVIGATION_METHOD_SELECTED", { source, method: "window.top.location" });
-      if (window.top) {
-        window.top.location.href = url;
-        console.log("NAVIGATION_SUCCESS", { source, method: "window.top.location" });
-        return true;
-      }
-    } catch (topError) {
-      console.error("NAVIGATION_ERROR", { source, method: "window.top.location", error: topError });
-    }
-  }
-
-  // 3) Manual fallback
-  console.warn("NAVIGATION_MANUAL_FALLBACK", { source, url });
-  onManualFallback?.(url);
-  toast.error("Não foi possível abrir automaticamente. Use o link manual exibido na tela.");
-  return false;
-}
-
-function openWhatsappDirect(url: string, source: string, onManualFallback?: (url: string) => void) {
-  console.log("WHATSAPP_WINDOW_OPEN_DIRECT", { source, url });
-  return openExternalUrl(url, source, onManualFallback);
-}
-
-function openGoogleNavigationTest(onManualFallback?: (url: string) => void) {
-  console.log("GOOGLE_WINDOW_OPEN_TEST_CLICKED");
-  openExternalUrl("https://google.com", "google_window_open_test", onManualFallback);
 }
 
 function logWhatsappFlowError(error: unknown) {
@@ -356,7 +288,6 @@ function NewChargePage() {
         <button
           type="submit"
           disabled={saving}
-          onClick={(event) => console.log("WHATSAPP_BUTTON_CLICKED", { source: "submit_button_click", disabled: event.currentTarget.disabled, pointerEvents: window.getComputedStyle(event.currentTarget).pointerEvents })}
           className="w-full bg-pitch text-paper py-3 font-display text-xl tracking-wide shadow-ledger disabled:opacity-50"
         >
           {saving ? "GERANDO..." : `GERAR ${selected.size} COBRANÇA${selected.size === 1 ? "" : "S"}`}
@@ -387,11 +318,13 @@ function ChargesResultModal({ charges, participants, groupName, onClose }: { cha
 
   const sendChargeOnWhatsapp = (charge: MPCharge | undefined, source: string, event: MouseEvent<HTMLButtonElement>) => {
     console.log("WHATSAPP_BUTTON_CLICKED", { source, chargeId: charge?.id ?? null, disabled: event.currentTarget.disabled });
+    const popup = openBlankWindowFromClick(source);
     try {
       if (!charge) throw new Error("Nenhuma cobrança válida para enviar.");
       const url = whatsappUrlForCharge(charge, participants, groupName);
-      openWhatsappDirect(url, source, setManualFallbackUrl);
+      redirectPreopenedWindow(popup, url, source, setManualFallbackUrl);
     } catch (error) {
+      popup?.close();
       logWhatsappFlowError(error);
     }
   };
@@ -440,14 +373,6 @@ function ChargesResultModal({ charges, participants, groupName, onClose }: { cha
           ) : (
             <div className="bg-red-50 border-2 border-red-200 p-3 text-sm text-red-800 text-center">Nenhuma cobrança válida para enviar</div>
           )}
-
-          <button
-            type="button"
-            onClick={() => openGoogleNavigationTest(setManualFallbackUrl)}
-            className="block text-center w-full border-2 border-ink/20 py-2 font-display text-sm tracking-wide hover:border-ink transition-colors"
-          >
-            TESTE TEMPORÁRIO: ABRIR GOOGLE
-          </button>
 
           <div className="text-center">
             <div className="text-[10px] font-bold uppercase tracking-widest text-faded">{c.description}</div>
