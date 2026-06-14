@@ -7,6 +7,16 @@ import { toast } from "sonner";
 import { buildWaLink, buildChargeMessage } from "@/lib/whatsapp";
 import { connectMercadoPagoManual } from "@/lib/payments/mp-connect.functions";
 import { connectStripeManual } from "@/lib/payments/stripe-connect.functions";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 type ProviderId = "mercado_pago" | "stripe";
 
