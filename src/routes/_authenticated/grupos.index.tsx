@@ -81,8 +81,8 @@ function GroupsPage() {
     <main className="max-w-6xl mx-auto px-4 md:px-6 py-8 md:py-12">
       <div className="flex items-end justify-between mb-8 border-b-2 border-ink/10 pb-6 gap-4 flex-wrap">
         <div>
-          <span className="font-serif italic text-sm text-faded">Suas peladas</span>
-          <h1 className="font-display text-5xl uppercase leading-none mt-1">Minhas peladas</h1>
+          <span className="font-serif italic text-sm text-faded">Painel do organizador</span>
+          <h1 className="font-display text-5xl uppercase leading-none mt-1">Peladas que organizo</h1>
         </div>
         <button
           onClick={() => setShowForm((s) => !s)}
