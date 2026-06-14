@@ -696,6 +696,16 @@ function GroupDashboard() {
   );
 }
 
+function Row({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between py-2.5 gap-3">
+      <dt className="text-[10px] font-bold uppercase tracking-widest text-faded">{label}</dt>
+      <dd className="text-sm font-semibold text-right truncate">{children}</dd>
+    </div>
+  );
+}
+
+
 function StatusBadge({ status }: { status: "pendente" | "pago" | "vencido" | "cancelado" }) {
   const map = {
     pago: "bg-green-100 text-green-800 border-green-200",
