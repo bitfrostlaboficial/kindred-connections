@@ -322,23 +322,32 @@ function GroupDashboard() {
                     <div className="col-span-2 text-sm font-bold tabular-nums">{fmt(Number(c.amount))}</div>
                     <div className="col-span-5 md:col-span-3 text-right flex items-center justify-end gap-1.5 flex-wrap">
                       <StatusBadge status={effStatus} />
-                      {c.status === "pendente" && (
-                        <>
-                          {waUrl && (
-                            <a
-                              href={waUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              title={`Reenviar para ${part?.name ?? "jogador"} no WhatsApp`}
-                              onClick={() => { if (!part?.phone) toast.message("Sem telefone — WhatsApp abrirá sem destinatário"); }}
-                              className="inline-flex items-center justify-center size-7 rounded-full bg-[#25D366] text-white hover:opacity-90 transition-opacity"
-                            >
-                              <MessageCircle className="size-3.5" />
-                            </a>
-                          )}
-                          <button onClick={() => markPaid(c.id)} className="text-[10px] font-semibold uppercase tracking-wider px-2 py-1 rounded border border-pitch/40 text-pitch hover:bg-pitch hover:text-paper transition-colors">Marcar pago</button>
-                        </>
+                      {c.status === "pendente" && waUrl && (
+                        <a
+                          href={waUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title={`Reenviar para ${part?.name ?? "jogador"} no WhatsApp`}
+                          onClick={() => { if (!part?.phone) toast.message("Sem telefone — WhatsApp abrirá sem destinatário"); }}
+                          className="inline-flex items-center justify-center size-7 rounded-full bg-[#25D366] text-white hover:opacity-90 transition-opacity"
+                        >
+                          <MessageCircle className="size-3.5" />
+                        </a>
                       )}
+                      {c.status === "pendente" ? (
+                        <button onClick={() => markPaid(c.id)} className="text-[10px] font-semibold uppercase tracking-wider px-2 py-1 rounded border border-pitch/40 text-pitch hover:bg-pitch hover:text-paper transition-colors">Marcar pago</button>
+                      ) : c.status === "pago" ? (
+                        <button onClick={() => unmarkPaid(c.id)} className="text-[10px] font-semibold uppercase tracking-wider px-2 py-1 rounded border border-ink/20 text-faded hover:border-canarinho hover:text-canarinho transition-colors">Desmarcar</button>
+                      ) : null}
+                      <button
+                        type="button"
+                        aria-label="Excluir cobrança"
+                        title="Excluir cobrança"
+                        onClick={() => deleteCharge(c.id)}
+                        className="inline-flex items-center justify-center size-7 rounded-full text-faded hover:text-destructive hover:bg-destructive/10 transition-colors"
+                      >
+                        <Trash2 className="size-3.5" />
+                      </button>
                     </div>
                   </div>
                 );
