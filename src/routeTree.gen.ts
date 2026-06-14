@@ -13,8 +13,11 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PagarTokenRouteImport } from './routes/pagar.$token'
+import { Route as EntrarTokenRouteImport } from './routes/entrar.$token'
 import { Route as ApiChargesRouteImport } from './routes/api/charges'
 import { Route as AuthenticatedPagamentosRouteImport } from './routes/_authenticated/pagamentos'
+import { Route as AuthenticatedMinhasPeladasRouteImport } from './routes/_authenticated/minhas-peladas'
+import { Route as AuthenticatedMinhasCobrancasRouteImport } from './routes/_authenticated/minhas-cobrancas'
 import { Route as AuthenticatedGruposRouteImport } from './routes/_authenticated/grupos'
 import { Route as AuthenticatedGruposIndexRouteImport } from './routes/_authenticated/grupos.index'
 import { Route as AuthenticatedGruposGroupIdRouteImport } from './routes/_authenticated/grupos.$groupId'
@@ -45,6 +48,11 @@ const PagarTokenRoute = PagarTokenRouteImport.update({
   path: '/pagar/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EntrarTokenRoute = EntrarTokenRouteImport.update({
+  id: '/entrar/$token',
+  path: '/entrar/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiChargesRoute = ApiChargesRouteImport.update({
   id: '/api/charges',
   path: '/api/charges',
@@ -55,6 +63,18 @@ const AuthenticatedPagamentosRoute = AuthenticatedPagamentosRouteImport.update({
   path: '/pagamentos',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedMinhasPeladasRoute =
+  AuthenticatedMinhasPeladasRouteImport.update({
+    id: '/minhas-peladas',
+    path: '/minhas-peladas',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedMinhasCobrancasRoute =
+  AuthenticatedMinhasCobrancasRouteImport.update({
+    id: '/minhas-cobrancas',
+    path: '/minhas-cobrancas',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedGruposRoute = AuthenticatedGruposRouteImport.update({
   id: '/grupos',
   path: '/grupos',
@@ -118,8 +138,11 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/grupos': typeof AuthenticatedGruposRouteWithChildren
+  '/minhas-cobrancas': typeof AuthenticatedMinhasCobrancasRoute
+  '/minhas-peladas': typeof AuthenticatedMinhasPeladasRoute
   '/pagamentos': typeof AuthenticatedPagamentosRoute
   '/api/charges': typeof ApiChargesRoute
+  '/entrar/$token': typeof EntrarTokenRoute
   '/pagar/$token': typeof PagarTokenRoute
   '/grupos/$groupId': typeof AuthenticatedGruposGroupIdRoute
   '/grupos/': typeof AuthenticatedGruposIndexRoute
@@ -134,8 +157,11 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/minhas-cobrancas': typeof AuthenticatedMinhasCobrancasRoute
+  '/minhas-peladas': typeof AuthenticatedMinhasPeladasRoute
   '/pagamentos': typeof AuthenticatedPagamentosRoute
   '/api/charges': typeof ApiChargesRoute
+  '/entrar/$token': typeof EntrarTokenRoute
   '/pagar/$token': typeof PagarTokenRoute
   '/grupos/$groupId': typeof AuthenticatedGruposGroupIdRoute
   '/grupos': typeof AuthenticatedGruposIndexRoute
@@ -153,8 +179,11 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/_authenticated/grupos': typeof AuthenticatedGruposRouteWithChildren
+  '/_authenticated/minhas-cobrancas': typeof AuthenticatedMinhasCobrancasRoute
+  '/_authenticated/minhas-peladas': typeof AuthenticatedMinhasPeladasRoute
   '/_authenticated/pagamentos': typeof AuthenticatedPagamentosRoute
   '/api/charges': typeof ApiChargesRoute
+  '/entrar/$token': typeof EntrarTokenRoute
   '/pagar/$token': typeof PagarTokenRoute
   '/_authenticated/grupos/$groupId': typeof AuthenticatedGruposGroupIdRoute
   '/_authenticated/grupos/': typeof AuthenticatedGruposIndexRoute
@@ -172,8 +201,11 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/grupos'
+    | '/minhas-cobrancas'
+    | '/minhas-peladas'
     | '/pagamentos'
     | '/api/charges'
+    | '/entrar/$token'
     | '/pagar/$token'
     | '/grupos/$groupId'
     | '/grupos/'
@@ -188,8 +220,11 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/minhas-cobrancas'
+    | '/minhas-peladas'
     | '/pagamentos'
     | '/api/charges'
+    | '/entrar/$token'
     | '/pagar/$token'
     | '/grupos/$groupId'
     | '/grupos'
@@ -206,8 +241,11 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/auth'
     | '/_authenticated/grupos'
+    | '/_authenticated/minhas-cobrancas'
+    | '/_authenticated/minhas-peladas'
     | '/_authenticated/pagamentos'
     | '/api/charges'
+    | '/entrar/$token'
     | '/pagar/$token'
     | '/_authenticated/grupos/$groupId'
     | '/_authenticated/grupos/'
@@ -225,6 +263,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   ApiChargesRoute: typeof ApiChargesRoute
+  EntrarTokenRoute: typeof EntrarTokenRoute
   PagarTokenRoute: typeof PagarTokenRoute
   ApiOauthMercadopagoCallbackRoute: typeof ApiOauthMercadopagoCallbackRoute
   ApiOauthMercadopagoStartRoute: typeof ApiOauthMercadopagoStartRoute
@@ -262,6 +301,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PagarTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/entrar/$token': {
+      id: '/entrar/$token'
+      path: '/entrar/$token'
+      fullPath: '/entrar/$token'
+      preLoaderRoute: typeof EntrarTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/charges': {
       id: '/api/charges'
       path: '/api/charges'
@@ -274,6 +320,20 @@ declare module '@tanstack/react-router' {
       path: '/pagamentos'
       fullPath: '/pagamentos'
       preLoaderRoute: typeof AuthenticatedPagamentosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/minhas-peladas': {
+      id: '/_authenticated/minhas-peladas'
+      path: '/minhas-peladas'
+      fullPath: '/minhas-peladas'
+      preLoaderRoute: typeof AuthenticatedMinhasPeladasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/minhas-cobrancas': {
+      id: '/_authenticated/minhas-cobrancas'
+      path: '/minhas-cobrancas'
+      fullPath: '/minhas-cobrancas'
+      preLoaderRoute: typeof AuthenticatedMinhasCobrancasRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/grupos': {
@@ -371,11 +431,15 @@ const AuthenticatedGruposRouteWithChildren =
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedGruposRoute: typeof AuthenticatedGruposRouteWithChildren
+  AuthenticatedMinhasCobrancasRoute: typeof AuthenticatedMinhasCobrancasRoute
+  AuthenticatedMinhasPeladasRoute: typeof AuthenticatedMinhasPeladasRoute
   AuthenticatedPagamentosRoute: typeof AuthenticatedPagamentosRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedGruposRoute: AuthenticatedGruposRouteWithChildren,
+  AuthenticatedMinhasCobrancasRoute: AuthenticatedMinhasCobrancasRoute,
+  AuthenticatedMinhasPeladasRoute: AuthenticatedMinhasPeladasRoute,
   AuthenticatedPagamentosRoute: AuthenticatedPagamentosRoute,
 }
 
@@ -387,6 +451,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   ApiChargesRoute: ApiChargesRoute,
+  EntrarTokenRoute: EntrarTokenRoute,
   PagarTokenRoute: PagarTokenRoute,
   ApiOauthMercadopagoCallbackRoute: ApiOauthMercadopagoCallbackRoute,
   ApiOauthMercadopagoStartRoute: ApiOauthMercadopagoStartRoute,

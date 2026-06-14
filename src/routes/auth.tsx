@@ -5,12 +5,15 @@ import { lovable } from "@/integrations/lovable/index";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/auth")({
-  head: () => ({ meta: [{ title: "Entrar — Peladeiro" }, { name: "description", content: "Acesse sua conta de organizador no Peladeiro." }] }),
+  head: () => ({ meta: [{ title: "Entrar — Peladeiro" }, { name: "description", content: "Acesse sua conta no Peladeiro." }] }),
+  validateSearch: (s: Record<string, unknown>) => ({ next: typeof s.next === "string" ? s.next : undefined }) as { next?: string },
   component: AuthPage,
 });
 
 function AuthPage() {
   const navigate = useNavigate();
+  const { next } = Route.useSearch();
+  const dest = next || "/grupos";
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -19,9 +22,9 @@ function AuthPage() {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: "/grupos" });
+      if (data.session) navigate({ to: dest });
     });
-  }, [navigate]);
+  }, [navigate, dest]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,7 +34,7 @@ function AuthPage() {
         const { error } = await supabase.auth.signUp({
           email,
           password,
-          options: { emailRedirectTo: window.location.origin + "/grupos", data: { full_name: name } },
+          options: { emailRedirectTo: window.location.origin + dest, data: { full_name: name } },
         });
         if (error) throw error;
         toast.success("Conta criada! Bora começar.");
@@ -39,7 +42,7 @@ function AuthPage() {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
       }
-      navigate({ to: "/grupos" });
+      navigate({ to: dest });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erro");
     } finally {
@@ -49,13 +52,13 @@ function AuthPage() {
 
   const handleGoogle = async () => {
     setLoading(true);
-    const result = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin + "/grupos" });
+    const result = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin + dest });
     if (result.error) {
       toast.error("Erro ao entrar com Google");
       setLoading(false);
       return;
     }
-    if (!result.redirected) navigate({ to: "/grupos" });
+    if (!result.redirected) navigate({ to: dest });
   };
 
   return (
