@@ -1,7 +1,8 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { List, MessageCircle, Trash2, QrCode } from "lucide-react";
+import { List, MessageCircle, Trash2, QrCode, Eye } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { PixColetivoDialog } from "@/components/pix-coletivo-dialog";
 import { AssistenteCobrancas } from "@/components/assistente-cobrancas";
 import { supabase } from "@/integrations/supabase/client";
