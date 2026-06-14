@@ -256,6 +256,13 @@ function GroupDashboard() {
         </div>
         <div className="flex items-center gap-2 self-start">
           <Link
+            to="/grupos/$groupId/conferencia"
+            params={{ groupId }}
+            className="border-2 border-ink px-4 py-3 font-display text-base tracking-wide hover:bg-ink hover:text-paper transition-colors"
+          >
+            CONFERIR
+          </Link>
+          <Link
             to="/grupos/$groupId/links"
             params={{ groupId }}
             className="border-2 border-ink px-4 py-3 font-display text-base tracking-wide hover:bg-ink hover:text-paper transition-colors"
