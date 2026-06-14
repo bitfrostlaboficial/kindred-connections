@@ -1,0 +1,1 @@
+ALTER TABLE public.charges ADD COLUMN IF NOT EXISTS pix_qr_code text;

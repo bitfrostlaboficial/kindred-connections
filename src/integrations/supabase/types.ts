@@ -35,6 +35,7 @@ export type Database = {
           payment_link: string | null
           payment_method: string | null
           pix_copy_paste: string | null
+          pix_qr_code: string | null
           provider: string
           provider_charge_id: string | null
           public_token: string
@@ -61,6 +62,7 @@ export type Database = {
           payment_link?: string | null
           payment_method?: string | null
           pix_copy_paste?: string | null
+          pix_qr_code?: string | null
           provider?: string
           provider_charge_id?: string | null
           public_token?: string
@@ -87,6 +89,7 @@ export type Database = {
           payment_link?: string | null
           payment_method?: string | null
           pix_copy_paste?: string | null
+          pix_qr_code?: string | null
           provider?: string
           provider_charge_id?: string | null
           public_token?: string
