@@ -377,6 +377,8 @@ export type Database = {
           created_at: string
           full_name: string | null
           id: string
+          phone: string | null
+          preferred_position: string | null
           updated_at: string
         }
         Insert: {
@@ -384,6 +386,8 @@ export type Database = {
           created_at?: string
           full_name?: string | null
           id: string
+          phone?: string | null
+          preferred_position?: string | null
           updated_at?: string
         }
         Update: {
@@ -391,6 +395,8 @@ export type Database = {
           created_at?: string
           full_name?: string | null
           id?: string
+          phone?: string | null
+          preferred_position?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -403,6 +409,14 @@ export type Database = {
       is_group_member: {
         Args: { _group_id: string; _user_id: string }
         Returns: boolean
+      }
+      join_group_by_token: {
+        Args: { _token: string }
+        Returns: {
+          already_member: boolean
+          group_id: string
+          participant_id: string
+        }[]
       }
     }
     Enums: {
