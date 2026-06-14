@@ -201,7 +201,6 @@ function GroupDashboard() {
   };
 
   const deleteCharge = async (chargeId: string) => {
-    if (!window.confirm("Excluir esta cobrança? Esta ação não pode ser desfeita.")) return;
     const { error } = await supabase.from("charges").delete().eq("id", chargeId);
     if (error) return toast.error(error.message);
     setCharges((list) => list.filter((x) => x.id !== chargeId));
