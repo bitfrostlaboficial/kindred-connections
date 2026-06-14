@@ -249,22 +249,42 @@ function ChargesResultModal({ charges, participants, groupName, onClose }: { cha
   const waLinkOf = (ch: MPCharge) => buildWaLink(phoneOf(ch.participant_id), buildChargeMessage({ name: ch.participant_name, groupName, amount: ch.amount, paymentUrl: paymentUrlOf(ch.public_token) }));
 
   const sendOne = (ch: MPCharge) => {
+    console.log("[WA] WHATSAPP_CLICK", ch.id);
     const url = waLinkOf(ch);
     if (!url) return toast.error("Telefone do jogador não cadastrado");
-    window.open(url, "_blank", "noopener,noreferrer");
+    console.log("[WA] WHATSAPP_LINK_GENERATED", url);
+    const w = window.open(url, "_blank", "noopener,noreferrer");
+    if (!w) {
+      console.error("[WA] WHATSAPP_ERROR popup bloqueado");
+      // Fallback: navega na própria aba (preserva o gesto)
+      window.location.href = url;
+      return;
+    }
+    console.log("[WA] WHATSAPP_URL_OPENED");
   };
   const sendAll = () => {
+    console.log("[WA] WHATSAPP_CLICK all");
     const ok = charges.filter((ch) => !ch.error);
     if (ok.length === 0) return toast.error("Nenhuma cobrança válida");
-    let opened = 0;
-    ok.forEach((ch, i) => {
-      const url = waLinkOf(ch);
-      if (!url) return;
-      // Abre em sequência com pequeno atraso para o browser não bloquear popups
-      setTimeout(() => window.open(url, "_blank", "noopener,noreferrer"), i * 350);
-      opened++;
-    });
-    toast.success(`Abrindo ${opened} conversa(s) no WhatsApp`);
+    // Abre o primeiro de forma síncrona (preserva user gesture); demais ficam
+    // disponíveis em botões individuais — abrir vários window.open em rajada é
+    // bloqueado por todos os browsers.
+    const [first, ...rest] = ok;
+    const url = waLinkOf(first);
+    if (!url) return toast.error("Telefone do jogador não cadastrado");
+    console.log("[WA] WHATSAPP_LINK_GENERATED", url);
+    const w = window.open(url, "_blank", "noopener,noreferrer");
+    if (!w) {
+      console.error("[WA] WHATSAPP_ERROR popup bloqueado");
+      window.location.href = url;
+      return;
+    }
+    console.log("[WA] WHATSAPP_URL_OPENED");
+    if (rest.length > 0) {
+      toast.message(`Enviado para ${first.participant_name}. Abra os próximos ${rest.length} pelos botões individuais.`);
+    } else {
+      toast.success("Abrindo WhatsApp...");
+    }
   };
 
   const copy = async (text: string | null) => {
