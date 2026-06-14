@@ -279,7 +279,14 @@ function GroupDashboard() {
                               }));
                               if (!url) return toast.error("Telefone não cadastrado");
                               if (!part?.phone) toast.message("Sem telefone — WhatsApp abrirá sem destinatário");
-                              window.open(url, "_blank", "noopener,noreferrer");
+                              const anchor = document.createElement("a");
+                              anchor.href = url;
+                              anchor.target = "_blank";
+                              anchor.rel = "noopener noreferrer";
+                              anchor.style.display = "none";
+                              document.body.appendChild(anchor);
+                              anchor.click();
+                              document.body.removeChild(anchor);
                             }}
                             className="text-[10px] font-bold uppercase tracking-widest px-2 py-1 border border-[#25D366] text-[#25D366] hover:bg-[#25D366] hover:text-white transition-colors"
                           >
