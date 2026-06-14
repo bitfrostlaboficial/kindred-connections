@@ -254,13 +254,22 @@ function GroupDashboard() {
           <h1 className="font-display text-5xl md:text-6xl uppercase leading-none mt-2">{group.name}</h1>
           {group.description && <p className="font-serif italic text-sm text-faded mt-2">{group.description}</p>}
         </div>
-        <button
-          type="button"
-          onClick={() => navigate({ to: "/grupos/$groupId/cobrar", params: { groupId } })}
-          className="bg-pitch text-paper px-6 py-3 font-display text-xl tracking-wide flex items-center gap-3 hover:bg-ink transition-colors shadow-ledger active:translate-y-0.5 active:shadow-none self-start"
-        >
-          COBRAR <span className="text-canarinho">+</span>
-        </button>
+        <div className="flex items-center gap-2 self-start">
+          <Link
+            to="/grupos/$groupId/links"
+            params={{ groupId }}
+            className="border-2 border-ink px-4 py-3 font-display text-base tracking-wide hover:bg-ink hover:text-paper transition-colors"
+          >
+            LINKS
+          </Link>
+          <button
+            type="button"
+            onClick={() => navigate({ to: "/grupos/$groupId/cobrar", params: { groupId } })}
+            className="bg-pitch text-paper px-6 py-3 font-display text-xl tracking-wide flex items-center gap-3 hover:bg-ink transition-colors shadow-ledger active:translate-y-0.5 active:shadow-none"
+          >
+            COBRAR <span className="text-canarinho">+</span>
+          </button>
+        </div>
       </header>
 
       <main className="grid grid-cols-1 lg:grid-cols-12 gap-8">
