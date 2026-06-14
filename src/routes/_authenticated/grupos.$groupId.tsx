@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { List, MessageCircle, Trash2, QrCode } from "lucide-react";
 import { PixColetivoDialog } from "@/components/pix-coletivo-dialog";
+import { AssistenteCobrancas } from "@/components/assistente-cobrancas";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { buildWaLink, buildChargeMessage } from "@/lib/whatsapp";
@@ -319,6 +320,16 @@ function GroupDashboard() {
               <p className="font-display text-4xl text-destructive">{fmt(totalVencido)}</p>
             </div>
           </section>
+
+          <AssistenteCobrancas
+            groupName={group.name}
+            participants={participants.map((p) => ({ id: p.id, name: p.name, phone: p.phone }))}
+            charges={charges.map((c) => ({
+              id: c.id, participant_id: c.participant_id, description: c.description,
+              amount: Number(c.amount), due_date: c.due_date, status: c.status, public_token: c.public_token,
+            }))}
+          />
+
 
           {/* Súmula de Cobranças */}
           <section>
