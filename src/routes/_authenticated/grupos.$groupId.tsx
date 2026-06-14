@@ -28,6 +28,7 @@ function GroupDashboard() {
   const [group, setGroup] = useState<Group | null>(null);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [charges, setCharges] = useState<Charge[]>([]);
+  const [monthFilter, setMonthFilter] = useState<string>(() => new Date().toISOString().slice(0, 7));
   const [ppc, setPpc] = useState<Record<ProviderId, PPCInfo | null>>({ mercado_pago: null, stripe: null });
   const [connecting, setConnecting] = useState(false);
   const [openModal, setOpenModal] = useState<ProviderId | null>(null);
