@@ -302,18 +302,12 @@ function ChargesResultModal({ charges, participants, groupName, onClose }: { cha
     return map;
   }, [charges, participants, groupName]);
 
-  const okCharges = charges.filter((x) => !x.error);
-  const firstOk = okCharges[0];
   const currentWaUrl = waUrls.get(c.id) ?? null;
-  const firstWaUrl = firstOk ? waUrls.get(firstOk.id) ?? null : null;
 
-
-
-
-  const copy = async (text: string | null) => {
+  const copy = async (text: string | null, msg = "Pix copiado!") => {
     if (!text) return;
     await navigator.clipboard.writeText(text);
-    toast.success("Pix copiado!");
+    toast.success(msg);
   };
 
   return (
