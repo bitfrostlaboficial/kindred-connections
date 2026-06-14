@@ -351,3 +351,122 @@ function CardPanel({
     </form>
   );
 }
+
+// ---- Stripe (Stripe.js + Elements via CDN) ----
+
+declare global {
+  interface Window { Stripe?: any }
+}
+
+function loadStripeJs(): Promise<void> {
+  if (typeof window === "undefined") return Promise.resolve();
+  if (window.Stripe) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = "https://js.stripe.com/v3/";
+    s.async = true;
+    s.onload = () => resolve();
+    s.onerror = () => reject(new Error("Falha ao carregar Stripe.js"));
+    document.head.appendChild(s);
+  });
+}
+
+function StripeCardPanel({
+  token,
+  amount,
+  publishableKey,
+  onPaid,
+}: {
+  token: string;
+  amount: number;
+  publishableKey: string | null;
+  onPaid: () => void;
+}) {
+  const createPI = useServerFn(createStripePaymentIntent);
+  const cardMountRef = useRef<HTMLDivElement>(null);
+  const stripeRef = useRef<any>(null);
+  const elementsRef = useRef<any>(null);
+  const cardElRef = useRef<any>(null);
+  const [ready, setReady] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        if (!publishableKey) throw new Error("Organizador não cadastrou a Publishable Key da Stripe");
+        await loadStripeJs();
+        if (cancelled) return;
+        const stripe = window.Stripe!(publishableKey);
+        stripeRef.current = stripe;
+        const res = await createPI({ data: { token } });
+        if (cancelled) return;
+        if ((res as any).status === "pago") { onPaid(); return; }
+        const cs = (res as any).clientSecret as string;
+        setClientSecret(cs);
+        const elements = stripe.elements({ clientSecret: cs, appearance: { theme: "stripe" } });
+        elementsRef.current = elements;
+        const card = elements.create("payment", { layout: "tabs" });
+        cardElRef.current = card;
+        if (cardMountRef.current) card.mount(cardMountRef.current);
+        setReady(true);
+      } catch (e: any) {
+        setError(e?.message ?? "Falha ao preparar pagamento Stripe");
+      }
+    })();
+    return () => { cancelled = true; try { cardElRef.current?.unmount?.(); } catch {} };
+  }, [publishableKey, token]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!stripeRef.current || !elementsRef.current || !clientSecret) return;
+    setSubmitting(true); setError(null);
+    try {
+      const { error: err, paymentIntent } = await stripeRef.current.confirmPayment({
+        elements: elementsRef.current,
+        redirect: "if_required",
+      });
+      if (err) { setError(err.message ?? "Pagamento recusado"); return; }
+      if (paymentIntent?.status === "succeeded") {
+        toast.success("Pagamento aprovado!");
+        onPaid();
+      } else {
+        toast.message("Pagamento em processamento. Acompanhe o status nesta tela.");
+        onPaid();
+      }
+    } catch (e: any) {
+      setError(e?.message ?? "Erro ao confirmar pagamento");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (!publishableKey) {
+    return (
+      <div className="border-2 border-yellow-300 bg-yellow-50 p-4 text-sm">
+        <p className="font-bold uppercase tracking-widest text-xs text-yellow-800 mb-1">Cartão indisponível</p>
+        <p className="font-serif text-yellow-900">Organizador ainda não cadastrou a Publishable Key da Stripe.</p>
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-3">
+      {!ready && !error && <p className="font-serif italic text-xs text-faded">Carregando módulo seguro Stripe...</p>}
+      <div ref={cardMountRef} className="border-2 border-ink/20 p-3 bg-white min-h-[200px]" />
+      {error && <div className="border-2 border-red-300 bg-red-50 p-2 text-sm text-red-800 font-mono">{error}</div>}
+      <button
+        type="submit"
+        disabled={submitting || !ready}
+        className="w-full bg-pitch text-paper py-3 font-display text-xl tracking-wide hover:bg-ink transition-colors shadow-ledger active:translate-y-0.5 active:shadow-none disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        {submitting ? "PROCESSANDO..." : `PAGAR ${fmtBRL(amount)}`}
+      </button>
+      <p className="text-[10px] font-serif italic text-faded text-center">
+        Dados do cartão vão diretamente à Stripe. A plataforma e o organizador nunca recebem número ou CVV.
+      </p>
+    </form>
+  );
+}
