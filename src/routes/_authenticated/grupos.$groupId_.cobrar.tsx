@@ -69,7 +69,30 @@ function NewChargePage() {
         .map((x) => x.participant_id));
       setSelected(new Set(list.filter((x) => !paidIds.has(x.id)).map((x) => x.id)));
     });
+
+    // Detecta se o Mercado Pago está configurado para este grupo
+    (async () => {
+      const { data: cfg } = await supabase
+        .from("payment_provider_configs")
+        .select("payment_account_id")
+        .eq("group_id", groupId)
+        .eq("provider", "mercado_pago")
+        .maybeSingle();
+      const accountId = (cfg as { payment_account_id: string | null } | null)?.payment_account_id;
+      if (!accountId) return setMpConfigured(false);
+      const { data: acct } = await supabase
+        .from("payment_accounts" as never)
+        .select("is_active")
+        .eq("id", accountId)
+        .maybeSingle();
+      setMpConfigured(Boolean((acct as { is_active: boolean } | null)?.is_active));
+    })();
   }, [groupId]);
+
+  const pixConfigured = Boolean(group?.pix_key && group?.pix_recipient_name);
+  // Gateway padrão: prioriza Mercado Pago, depois Pix Manual
+  const defaultProvider: ProviderId | null = mpConfigured ? "mercado_pago" : pixConfigured ? "pix_manual" : null;
+  const provider: ProviderId = defaultProvider ?? "pix_manual";
 
   const toggle = (id: string) => {
     const s = new Set(selected);
