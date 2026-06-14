@@ -110,11 +110,6 @@ function NewChargePage() {
     e.preventDefault();
     if (selected.size === 0) return toast.error("Selecione ao menos um jogador");
     if (!group) return;
-    let pendingWhatsappPopup: Window | null = null;
-    if (provider === "mercado_pago") {
-      console.log("WHATSAPP_BUTTON_CLICKED", { source: "submit_generate_charge", selectedCount: selected.size, disabled: saving, pointerEvents: "form-submit" });
-      pendingWhatsappPopup = openWhatsappPopup("submit_generate_charge");
-    }
     setSaving(true);
 
     if (provider === "mercado_pago") {
@@ -138,10 +133,7 @@ function NewChargePage() {
           }),
         });
 
-        const json = await res.json().catch((error) => {
-          console.error("WHATSAPP_FLOW_ERROR", error);
-          return {};
-        });
+        const json = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(json?.error ?? `Erro HTTP ${res.status}`);
 
         const charges = (json.charges ?? []) as MPCharge[];
@@ -150,16 +142,7 @@ function NewChargePage() {
         const errs = charges.filter((c) => c.error);
         if (errs.length > 0) toast.error(`Falha em ${errs.length}: ${errs[0].error}`);
         setResults(charges);
-        const firstOkCharge = charges.find((charge) => !charge.error);
-        if (firstOkCharge) {
-          const url = whatsappUrlForCharge(firstOkCharge, participants, group.name);
-          sendWhatsappToPopup(pendingWhatsappPopup, url, "submit_generate_charge");
-          if (okCount > 1) toast.message(`Abrindo ${firstOkCharge.participant_name}. Use os botões abaixo para os outros ${okCount - 1}.`);
-        } else {
-          throw new Error("Nenhuma cobrança válida retornada para enviar no WhatsApp.");
-        }
       } catch (err) {
-        logWhatsappFlowError(err, pendingWhatsappPopup);
         const msg = err instanceof Error ? err.message : "Erro ao gerar cobrança";
         toast.error(`Não foi possível gerar a cobrança. ${msg}`);
       } finally {
@@ -167,6 +150,7 @@ function NewChargePage() {
       }
       return;
     }
+
 
     const { data: userData } = await supabase.auth.getUser();
     const userId = userData.user?.id;
