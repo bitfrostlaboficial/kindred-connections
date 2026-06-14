@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { type MouseEvent, useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getProvider } from "@/lib/payments";
 import { toast } from "sonner";
@@ -15,65 +15,30 @@ type Group = { id: string; name: string; default_monthly_fee: number | null; pix
 type ProviderId = "pix_manual" | "mercado_pago";
 type MPCharge = { id: string; participant_id: string; participant_name: string; amount: number; description: string; status: string; pix_copy_paste: string | null; pix_qr_code: string | null; payment_link: string | null; public_token: string; error?: string };
 
-function openBlankWindowFromClick(source: string) {
-  try {
-    const popup = window.open("", "_blank");
-    console.log("WHATSAPP_WINDOW_PREOPEN", { source, opened: Boolean(popup) });
-    return popup;
-  } catch (error) {
-    console.error("WHATSAPP_WINDOW_PREOPEN_ERROR", { source, error });
-    return null;
-  }
-}
-
-function redirectPreopenedWindow(popup: Window | null, url: string, source: string, onManualFallback: (url: string) => void) {
-  console.log("WHATSAPP_WINDOW_OPEN_DIRECT", { source, url, hasPreopenedWindow: Boolean(popup) });
-  onManualFallback(url);
-  if (!popup) {
-    toast.error("Não foi possível abrir automaticamente. Use o link manual exibido na tela.");
-    return false;
-  }
-  try {
-    popup.location.href = url;
-    console.log("WHATSAPP_WINDOW_REDIRECT_SUCCESS", { source, url });
-    return true;
-  } catch (error) {
-    console.error("WHATSAPP_WINDOW_REDIRECT_ERROR", { source, error });
-    toast.error("Não foi possível abrir automaticamente. Use o link manual exibido na tela.");
-    return false;
-  }
-}
-
-function logWhatsappFlowError(error: unknown) {
-  console.error("WHATSAPP_FLOW_ERROR", error);
-  const message = error instanceof Error ? error.message : "Erro inesperado.";
-  toast.error(`Não foi possível abrir o WhatsApp. ${message}`);
-}
-
 function paymentUrlOf(publicToken: string | null | undefined) {
   if (!publicToken) return null;
   return `${typeof window !== "undefined" ? window.location.origin : ""}/pagar/${publicToken}`;
 }
 
-function whatsappUrlForCharge(charge: MPCharge, participants: Participant[], groupName: string) {
-  console.log("CHARGE_LOADED", { chargeId: charge.id, participantId: charge.participant_id });
-  if (charge.error) throw new Error(charge.error);
-
+function computeWhatsappUrl(charge: MPCharge, participants: Participant[], groupName: string): string | null {
+  if (charge.error) return null;
   const paymentUrl = paymentUrlOf(charge.public_token);
-  if (!paymentUrl) throw new Error("Link público da cobrança não encontrado.");
-  console.log("PUBLIC_LINK_FOUND", paymentUrl);
-
+  if (!paymentUrl) return null;
   const phone = participants.find((p) => p.id === charge.participant_id)?.phone ?? null;
-  console.log("PLAYER_PHONE", phone ?? "");
-  if (!phone) throw new Error(`Telefone de ${charge.participant_name} não cadastrado.`);
-
+  if (!phone) return null;
   const message = buildChargeMessage({ name: charge.participant_name, groupName, amount: charge.amount, paymentUrl });
-  console.log("WHATSAPP_MESSAGE_CREATED", message);
+  return buildWaLink(phone, message);
+}
 
-  const url = buildWaLink(phone, message);
-  if (!url) throw new Error("URL do WhatsApp não pôde ser criada.");
-  console.log("WHATSAPP_URL_CREATED", url);
-  return url;
+function triggerAnchorClick(url: string) {
+  const a = document.createElement("a");
+  a.href = url;
+  a.target = "_blank";
+  a.rel = "noopener noreferrer";
+  a.style.display = "none";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
 }
 
 function NewChargePage() {
@@ -308,25 +273,32 @@ function NewChargePage() {
 
 function ChargesResultModal({ charges, participants, groupName, onClose }: { charges: MPCharge[]; participants: Participant[]; groupName: string; onClose: () => void }) {
   const [idx, setIdx] = useState(0);
-  const [manualFallbackUrl, setManualFallbackUrl] = useState<string | null>(null);
   const c = charges[idx];
   const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
   const phoneOf = (pid: string) => participants.find((p) => p.id === pid)?.phone ?? null;
 
+  // Pré-computa todas as URLs do WhatsApp de forma síncrona ao montar o modal.
+  const waUrls = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const ch of charges) {
+      const url = computeWhatsappUrl(ch, participants, groupName);
+      if (url) map.set(ch.id, url);
+    }
+    return map;
+  }, [charges, participants, groupName]);
+
   const okCharges = charges.filter((x) => !x.error);
   const firstOk = okCharges[0];
+  const currentWaUrl = waUrls.get(c.id) ?? null;
+  const firstWaUrl = firstOk ? waUrls.get(firstOk.id) ?? null : null;
 
-  const sendChargeOnWhatsapp = (charge: MPCharge | undefined, source: string, event: MouseEvent<HTMLButtonElement>) => {
-    console.log("WHATSAPP_BUTTON_CLICKED", { source, chargeId: charge?.id ?? null, disabled: event.currentTarget.disabled });
-    const popup = openBlankWindowFromClick(source);
-    try {
-      if (!charge) throw new Error("Nenhuma cobrança válida para enviar.");
-      const url = whatsappUrlForCharge(charge, participants, groupName);
-      redirectPreopenedWindow(popup, url, source, setManualFallbackUrl);
-    } catch (error) {
-      popup?.close();
-      logWhatsappFlowError(error);
+  const sendChargeOnWhatsapp = (url: string | null, source: string) => {
+    console.log("WHATSAPP_BUTTON_CLICKED", { source, hasUrl: Boolean(url) });
+    if (!url) {
+      toast.error("Link do WhatsApp indisponível. Use o link manual exibido na tela.");
+      return;
     }
+    triggerAnchorClick(url);
   };
 
   const copy = async (text: string | null) => {
@@ -334,8 +306,6 @@ function ChargesResultModal({ charges, participants, groupName, onClose }: { cha
     await navigator.clipboard.writeText(text);
     toast.success("Pix copiado!");
   };
-
-
 
   return (
     <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
@@ -348,28 +318,20 @@ function ChargesResultModal({ charges, participants, groupName, onClose }: { cha
           <button onClick={onClose} className="text-2xl px-2">×</button>
         </div>
         <div className="p-6 space-y-4">
-          {manualFallbackUrl && (
-            <div className="border-2 border-canarinho bg-canarinho/10 p-3 text-center text-sm">
-              <div className="font-bold uppercase tracking-widest text-[10px] mb-2">Não foi possível abrir automaticamente.</div>
-              <a href={manualFallbackUrl} target="_blank" rel="noopener noreferrer" className="font-display text-lg text-pitch hover:underline">
-                Abrir {manualFallbackUrl.includes("wa.me") ? "WhatsApp" : "teste"} ↗
-              </a>
-            </div>
-          )}
-
-          {firstOk ? (
-            <button
-              type="button"
-              onClick={(e) => {
-                sendChargeOnWhatsapp(firstOk, "modal_send_first", e);
+          {firstOk && firstWaUrl ? (
+            <a
+              href={firstWaUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => {
                 if (okCharges.length > 1) {
-                  toast.message(`Abrindo ${firstOk?.participant_name}. Use os botões abaixo para os outros ${okCharges.length - 1}.`);
+                  toast.message(`Abrindo ${firstOk.participant_name}. Use os botões abaixo para os outros ${okCharges.length - 1}.`);
                 }
               }}
               className="block text-center w-full bg-[#25D366] text-white py-3 font-display text-lg tracking-wide shadow-ledger hover:opacity-90 transition-opacity"
             >
-              ENVIAR {okCharges.length > 1 ? `PRIMEIRO (${okCharges.length} TOTAL)` : "PELO WHATSAPP"}
-            </button>
+              ENVIAR {okCharges.length > 1 ? `PRIMEIRO (${okCharges.length} TOTAL)` : "PELO WHATSAPP"} ↗
+            </a>
           ) : (
             <div className="bg-red-50 border-2 border-red-200 p-3 text-sm text-red-800 text-center">Nenhuma cobrança válida para enviar</div>
           )}
@@ -385,20 +347,32 @@ function ChargesResultModal({ charges, participants, groupName, onClose }: { cha
             </div>
           ) : (
             <>
-              {!c.error ? (
-                <button
-                  type="button"
-                  onClick={(e) => sendChargeOnWhatsapp(c, "modal_send_current", e)}
-                  className="block text-center w-full bg-[#25D366] text-white py-2 font-display text-base tracking-wide hover:opacity-90 transition-opacity"
-                >
-                  ENVIAR PARA {c.participant_name.split(" ")[0].toUpperCase()} NO WHATSAPP
-                </button>
+              {currentWaUrl ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => sendChargeOnWhatsapp(currentWaUrl, "modal_send_current")}
+                    className="block text-center w-full bg-[#25D366] text-white py-2 font-display text-base tracking-wide hover:opacity-90 transition-opacity"
+                  >
+                    ENVIAR PARA {c.participant_name.split(" ")[0].toUpperCase()} NO WHATSAPP
+                  </button>
+                  <a
+                    href={currentWaUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block text-center text-xs font-bold uppercase tracking-widest text-pitch hover:underline"
+                  >
+                    Abrir WhatsApp manualmente ↗
+                  </a>
+                </>
               ) : (
                 <div className="bg-yellow-50 border-2 border-yellow-300 p-2 text-xs text-yellow-900 text-center">Não foi possível gerar o link do WhatsApp</div>
               )}
               {!phoneOf(c.participant_id) && (
                 <p className="text-[10px] text-canarinho text-center">⚠ Sem telefone cadastrado — o WhatsApp abrirá sem destinatário.</p>
               )}
+
+
 
               {c.pix_qr_code && (
                 <div className="flex justify-center">
