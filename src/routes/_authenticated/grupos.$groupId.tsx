@@ -202,6 +202,23 @@ function GroupDashboard() {
 
   const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
   const fmtDate = (d: string) => new Date(d + "T12:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "2-digit" }).toUpperCase().replace(/\./g, "");
+  const fmtDateShort = (d: string) => {
+    const dt = new Date(d + "T12:00:00");
+    return `${String(dt.getDate()).padStart(2, "0")}/${String(dt.getMonth() + 1).padStart(2, "0")}`;
+  };
+  const monthLabel = (ym: string) => {
+    const [y, m] = ym.split("-").map(Number);
+    return new Date(y, m - 1, 1).toLocaleDateString("pt-BR", { month: "long" }).toUpperCase();
+  };
+  const availableMonths = useMemo(() => {
+    const set = new Set<string>(charges.map((c) => c.due_date.slice(0, 7)));
+    set.add(new Date().toISOString().slice(0, 7));
+    return Array.from(set).sort().reverse();
+  }, [charges]);
+  const visibleCharges = useMemo(
+    () => charges.filter((c) => c.due_date.slice(0, 7) === monthFilter),
+    [charges, monthFilter],
+  );
 
   return (
     <main className="max-w-6xl mx-auto px-4 md:px-6 py-8 md:py-12">
