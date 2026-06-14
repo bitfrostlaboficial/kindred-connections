@@ -7,6 +7,16 @@ import { toast } from "sonner";
 import { buildWaLink, buildChargeMessage } from "@/lib/whatsapp";
 import { connectMercadoPagoManual } from "@/lib/payments/mp-connect.functions";
 import { connectStripeManual } from "@/lib/payments/stripe-connect.functions";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 type ProviderId = "mercado_pago" | "stripe";
 
@@ -29,6 +39,7 @@ function GroupDashboard() {
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [charges, setCharges] = useState<Charge[]>([]);
   const [monthFilter, setMonthFilter] = useState<string>(() => new Date().toISOString().slice(0, 7));
+  const [chargeToDelete, setChargeToDelete] = useState<Charge | null>(null);
   const [ppc, setPpc] = useState<Record<ProviderId, PPCInfo | null>>({ mercado_pago: null, stripe: null });
   const [connecting, setConnecting] = useState(false);
   const [openModal, setOpenModal] = useState<ProviderId | null>(null);
@@ -190,7 +201,6 @@ function GroupDashboard() {
   };
 
   const deleteCharge = async (chargeId: string) => {
-    if (!window.confirm("Excluir esta cobrança? Esta ação não pode ser desfeita.")) return;
     const { error } = await supabase.from("charges").delete().eq("id", chargeId);
     if (error) return toast.error(error.message);
     setCharges((list) => list.filter((x) => x.id !== chargeId));
@@ -343,7 +353,7 @@ function GroupDashboard() {
                         type="button"
                         aria-label="Excluir cobrança"
                         title="Excluir cobrança"
-                        onClick={() => deleteCharge(c.id)}
+                        onClick={() => setChargeToDelete(c)}
                         className="inline-flex items-center justify-center size-7 rounded-full text-faded hover:text-destructive hover:bg-destructive/10 transition-colors"
                       >
                         <Trash2 className="size-3.5" />
@@ -527,6 +537,31 @@ function GroupDashboard() {
           </div>
         )}
       </main>
+
+      <AlertDialog open={chargeToDelete !== null} onOpenChange={(open) => !open && setChargeToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-display text-2xl uppercase">Excluir cobrança?</AlertDialogTitle>
+            <AlertDialogDescription className="font-serif italic">
+              {chargeToDelete && (
+                <>Esta ação não pode ser desfeita. A cobrança de <strong className="not-italic font-semibold text-ink">{pName2id.get(chargeToDelete.participant_id) ?? "—"}</strong> ({fmt(Number(chargeToDelete.amount))}) será removida permanentemente.</>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                if (chargeToDelete) await deleteCharge(chargeToDelete.id);
+                setChargeToDelete(null);
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </main>
   );
 }
