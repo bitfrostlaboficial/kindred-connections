@@ -447,9 +447,10 @@ function GroupDashboard() {
             ) : (
               <div className="space-y-4">
                 {participants.map((p) => {
-                  const st = statusByParticipant.get(p.id);
+                  const st = statusByParticipant.get(p.id) ?? "pendente";
                   const dot = st === "vencido" ? "bg-destructive" : st === "pendente" ? "bg-canarinho" : "bg-pitch";
                   const label = st === "vencido" ? "Vencido" : st === "pendente" ? "Pendente" : "Em dia";
+                  const hasAccount = !!p.user_id;
                   const isEditing = editingId === p.id;
                   if (isEditing) {
                     return (
