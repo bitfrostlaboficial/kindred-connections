@@ -404,3 +404,20 @@ function ChargesResultModal({ charges, participants, groupName, onClose }: { cha
     </div>
   );
 }
+
+type GatewayStatus = "padrao" | "configurado" | "nao_configurado";
+
+function GatewayInfoCard({ name, subtitle, status }: { name: string; subtitle: string; status: GatewayStatus }) {
+  const active = status !== "nao_configurado";
+  return (
+    <div className={`relative p-3 border-2 border-ink/15 text-left ${active ? "" : "opacity-60"}`}>
+      <div className={`font-display text-lg ${active ? "" : "text-faded"}`}>{name}</div>
+      <div className="text-[10px] text-faded uppercase tracking-widest">{subtitle}</div>
+      <span className="absolute top-2 right-2 inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-widest text-faded">
+        {status === "padrao" && <>Padrão</>}
+        {status === "configurado" && (<><Check className="size-3" /> Configurado</>)}
+        {status === "nao_configurado" && <>Não configurado</>}
+      </span>
+    </div>
+  );
+}
