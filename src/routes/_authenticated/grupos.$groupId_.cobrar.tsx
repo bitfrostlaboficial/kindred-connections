@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { type MouseEvent, useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getProvider } from "@/lib/payments";
 import { toast } from "sonner";
@@ -15,65 +15,30 @@ type Group = { id: string; name: string; default_monthly_fee: number | null; pix
 type ProviderId = "pix_manual" | "mercado_pago";
 type MPCharge = { id: string; participant_id: string; participant_name: string; amount: number; description: string; status: string; pix_copy_paste: string | null; pix_qr_code: string | null; payment_link: string | null; public_token: string; error?: string };
 
-function openBlankWindowFromClick(source: string) {
-  try {
-    const popup = window.open("", "_blank");
-    console.log("WHATSAPP_WINDOW_PREOPEN", { source, opened: Boolean(popup) });
-    return popup;
-  } catch (error) {
-    console.error("WHATSAPP_WINDOW_PREOPEN_ERROR", { source, error });
-    return null;
-  }
-}
-
-function redirectPreopenedWindow(popup: Window | null, url: string, source: string, onManualFallback: (url: string) => void) {
-  console.log("WHATSAPP_WINDOW_OPEN_DIRECT", { source, url, hasPreopenedWindow: Boolean(popup) });
-  onManualFallback(url);
-  if (!popup) {
-    toast.error("Não foi possível abrir automaticamente. Use o link manual exibido na tela.");
-    return false;
-  }
-  try {
-    popup.location.href = url;
-    console.log("WHATSAPP_WINDOW_REDIRECT_SUCCESS", { source, url });
-    return true;
-  } catch (error) {
-    console.error("WHATSAPP_WINDOW_REDIRECT_ERROR", { source, error });
-    toast.error("Não foi possível abrir automaticamente. Use o link manual exibido na tela.");
-    return false;
-  }
-}
-
-function logWhatsappFlowError(error: unknown) {
-  console.error("WHATSAPP_FLOW_ERROR", error);
-  const message = error instanceof Error ? error.message : "Erro inesperado.";
-  toast.error(`Não foi possível abrir o WhatsApp. ${message}`);
-}
-
 function paymentUrlOf(publicToken: string | null | undefined) {
   if (!publicToken) return null;
   return `${typeof window !== "undefined" ? window.location.origin : ""}/pagar/${publicToken}`;
 }
 
-function whatsappUrlForCharge(charge: MPCharge, participants: Participant[], groupName: string) {
-  console.log("CHARGE_LOADED", { chargeId: charge.id, participantId: charge.participant_id });
-  if (charge.error) throw new Error(charge.error);
-
+function computeWhatsappUrl(charge: MPCharge, participants: Participant[], groupName: string): string | null {
+  if (charge.error) return null;
   const paymentUrl = paymentUrlOf(charge.public_token);
-  if (!paymentUrl) throw new Error("Link público da cobrança não encontrado.");
-  console.log("PUBLIC_LINK_FOUND", paymentUrl);
-
+  if (!paymentUrl) return null;
   const phone = participants.find((p) => p.id === charge.participant_id)?.phone ?? null;
-  console.log("PLAYER_PHONE", phone ?? "");
-  if (!phone) throw new Error(`Telefone de ${charge.participant_name} não cadastrado.`);
-
+  if (!phone) return null;
   const message = buildChargeMessage({ name: charge.participant_name, groupName, amount: charge.amount, paymentUrl });
-  console.log("WHATSAPP_MESSAGE_CREATED", message);
+  return buildWaLink(phone, message);
+}
 
-  const url = buildWaLink(phone, message);
-  if (!url) throw new Error("URL do WhatsApp não pôde ser criada.");
-  console.log("WHATSAPP_URL_CREATED", url);
-  return url;
+function triggerAnchorClick(url: string) {
+  const a = document.createElement("a");
+  a.href = url;
+  a.target = "_blank";
+  a.rel = "noopener noreferrer";
+  a.style.display = "none";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
 }
 
 function NewChargePage() {
