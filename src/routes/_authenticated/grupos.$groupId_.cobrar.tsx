@@ -15,20 +15,21 @@ type Group = { id: string; name: string; default_monthly_fee: number | null; pix
 type ProviderId = "pix_manual" | "mercado_pago";
 type MPCharge = { id: string; participant_id: string; participant_name: string; amount: number; description: string; status: string; pix_copy_paste: string | null; pix_qr_code: string | null; payment_link: string | null; public_token: string; error?: string };
 
-function openWhatsappPopup(source: string) {
-  console.log("WINDOW_OPEN_CALLED", { source, target: "_blank", url: "about:blank", hasAwaitBeforeOpen: false });
-  const popup = window.open("", "_blank");
-  console.log("WINDOW_OPEN_RESULT", { source, opened: Boolean(popup), closed: popup?.closed ?? null });
-  return popup;
+function openWhatsappDirect(url: string, source: string) {
+  console.log("WHATSAPP_WINDOW_OPEN_DIRECT", { source, url });
+  try {
+    const win = window.open(url, "_blank", "noopener,noreferrer");
+    if (!win) window.location.assign(url);
+    return true;
+  } catch (e) {
+    console.error("WHATSAPP_WINDOW_OPEN_ERROR", e);
+    toast.error("Não foi possível abrir o WhatsApp. Libere pop-ups para este site.");
+    return false;
+  }
 }
 
-function closeWhatsappPopup(popup: Window | null) {
-  if (popup && !popup.closed) popup.close();
-}
-
-function logWhatsappFlowError(error: unknown, popup: Window | null = null) {
+function logWhatsappFlowError(error: unknown) {
   console.error("WHATSAPP_FLOW_ERROR", error);
-  closeWhatsappPopup(popup);
   const message = error instanceof Error ? error.message : "Erro inesperado.";
   toast.error(`Não foi possível abrir o WhatsApp. ${message}`);
 }
@@ -39,7 +40,7 @@ function paymentUrlOf(publicToken: string | null | undefined) {
 }
 
 function whatsappUrlForCharge(charge: MPCharge, participants: Participant[], groupName: string) {
-  console.log("CHARGE_LOADED", { chargeId: charge.id, participantId: charge.participant_id, participantName: charge.participant_name, status: charge.status, publicToken: charge.public_token });
+  console.log("CHARGE_LOADED", { chargeId: charge.id, participantId: charge.participant_id });
   if (charge.error) throw new Error(charge.error);
 
   const paymentUrl = paymentUrlOf(charge.public_token);
@@ -56,15 +57,7 @@ function whatsappUrlForCharge(charge: MPCharge, participants: Participant[], gro
   const url = buildWaLink(phone, message);
   if (!url) throw new Error("URL do WhatsApp não pôde ser criada.");
   console.log("WHATSAPP_URL_CREATED", url);
-  console.log("WHATSAPP_URL", url);
   return url;
-}
-
-function sendWhatsappToPopup(popup: Window | null, url: string, source: string) {
-  if (!popup) throw new Error("Nova aba bloqueada pelo navegador. Libere pop-ups para abrir o WhatsApp.");
-  popup.opener = null;
-  popup.location.href = url;
-  console.log("WINDOW_OPEN_RESULT", { source, opened: true, assignedUrl: url });
 }
 
 function NewChargePage() {
