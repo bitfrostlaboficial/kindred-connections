@@ -15,20 +15,21 @@ type Group = { id: string; name: string; default_monthly_fee: number | null; pix
 type ProviderId = "pix_manual" | "mercado_pago";
 type MPCharge = { id: string; participant_id: string; participant_name: string; amount: number; description: string; status: string; pix_copy_paste: string | null; pix_qr_code: string | null; payment_link: string | null; public_token: string; error?: string };
 
-function openWhatsappPopup(source: string) {
-  console.log("WINDOW_OPEN_CALLED", { source, target: "_blank", url: "about:blank", hasAwaitBeforeOpen: false });
-  const popup = window.open("", "_blank");
-  console.log("WINDOW_OPEN_RESULT", { source, opened: Boolean(popup), closed: popup?.closed ?? null });
-  return popup;
+function openWhatsappDirect(url: string, source: string) {
+  console.log("WHATSAPP_WINDOW_OPEN_DIRECT", { source, url });
+  try {
+    const win = window.open(url, "_blank", "noopener,noreferrer");
+    if (!win) window.location.assign(url);
+    return true;
+  } catch (e) {
+    console.error("WHATSAPP_WINDOW_OPEN_ERROR", e);
+    toast.error("Não foi possível abrir o WhatsApp. Libere pop-ups para este site.");
+    return false;
+  }
 }
 
-function closeWhatsappPopup(popup: Window | null) {
-  if (popup && !popup.closed) popup.close();
-}
-
-function logWhatsappFlowError(error: unknown, popup: Window | null = null) {
+function logWhatsappFlowError(error: unknown) {
   console.error("WHATSAPP_FLOW_ERROR", error);
-  closeWhatsappPopup(popup);
   const message = error instanceof Error ? error.message : "Erro inesperado.";
   toast.error(`Não foi possível abrir o WhatsApp. ${message}`);
 }
@@ -39,7 +40,7 @@ function paymentUrlOf(publicToken: string | null | undefined) {
 }
 
 function whatsappUrlForCharge(charge: MPCharge, participants: Participant[], groupName: string) {
-  console.log("CHARGE_LOADED", { chargeId: charge.id, participantId: charge.participant_id, participantName: charge.participant_name, status: charge.status, publicToken: charge.public_token });
+  console.log("CHARGE_LOADED", { chargeId: charge.id, participantId: charge.participant_id });
   if (charge.error) throw new Error(charge.error);
 
   const paymentUrl = paymentUrlOf(charge.public_token);
@@ -56,15 +57,7 @@ function whatsappUrlForCharge(charge: MPCharge, participants: Participant[], gro
   const url = buildWaLink(phone, message);
   if (!url) throw new Error("URL do WhatsApp não pôde ser criada.");
   console.log("WHATSAPP_URL_CREATED", url);
-  console.log("WHATSAPP_URL", url);
   return url;
-}
-
-function sendWhatsappToPopup(popup: Window | null, url: string, source: string) {
-  if (!popup) throw new Error("Nova aba bloqueada pelo navegador. Libere pop-ups para abrir o WhatsApp.");
-  popup.opener = null;
-  popup.location.href = url;
-  console.log("WINDOW_OPEN_RESULT", { source, opened: true, assignedUrl: url });
 }
 
 function NewChargePage() {
@@ -117,11 +110,6 @@ function NewChargePage() {
     e.preventDefault();
     if (selected.size === 0) return toast.error("Selecione ao menos um jogador");
     if (!group) return;
-    let pendingWhatsappPopup: Window | null = null;
-    if (provider === "mercado_pago") {
-      console.log("WHATSAPP_BUTTON_CLICKED", { source: "submit_generate_charge", selectedCount: selected.size, disabled: saving, pointerEvents: "form-submit" });
-      pendingWhatsappPopup = openWhatsappPopup("submit_generate_charge");
-    }
     setSaving(true);
 
     if (provider === "mercado_pago") {
@@ -145,10 +133,7 @@ function NewChargePage() {
           }),
         });
 
-        const json = await res.json().catch((error) => {
-          console.error("WHATSAPP_FLOW_ERROR", error);
-          return {};
-        });
+        const json = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(json?.error ?? `Erro HTTP ${res.status}`);
 
         const charges = (json.charges ?? []) as MPCharge[];
@@ -157,16 +142,7 @@ function NewChargePage() {
         const errs = charges.filter((c) => c.error);
         if (errs.length > 0) toast.error(`Falha em ${errs.length}: ${errs[0].error}`);
         setResults(charges);
-        const firstOkCharge = charges.find((charge) => !charge.error);
-        if (firstOkCharge) {
-          const url = whatsappUrlForCharge(firstOkCharge, participants, group.name);
-          sendWhatsappToPopup(pendingWhatsappPopup, url, "submit_generate_charge");
-          if (okCount > 1) toast.message(`Abrindo ${firstOkCharge.participant_name}. Use os botões abaixo para os outros ${okCount - 1}.`);
-        } else {
-          throw new Error("Nenhuma cobrança válida retornada para enviar no WhatsApp.");
-        }
       } catch (err) {
-        logWhatsappFlowError(err, pendingWhatsappPopup);
         const msg = err instanceof Error ? err.message : "Erro ao gerar cobrança";
         toast.error(`Não foi possível gerar a cobrança. ${msg}`);
       } finally {
@@ -174,6 +150,7 @@ function NewChargePage() {
       }
       return;
     }
+
 
     const { data: userData } = await supabase.auth.getUser();
     const userId = userData.user?.id;
@@ -298,7 +275,7 @@ function NewChargePage() {
           onClick={(event) => console.log("WHATSAPP_BUTTON_CLICKED", { source: "submit_button_click", disabled: event.currentTarget.disabled, pointerEvents: window.getComputedStyle(event.currentTarget).pointerEvents })}
           className="w-full bg-pitch text-paper py-3 font-display text-xl tracking-wide shadow-ledger disabled:opacity-50"
         >
-          {saving ? "GERANDO..." : `GERAR ${selected.size} COBRANÇA${selected.size === 1 ? "" : "S"} E ENVIAR PELO WHATSAPP`}
+          {saving ? "GERANDO..." : `GERAR ${selected.size} COBRANÇA${selected.size === 1 ? "" : "S"}`}
         </button>
       </form>
 
@@ -324,14 +301,13 @@ function ChargesResultModal({ charges, participants, groupName, onClose }: { cha
   const firstOk = okCharges[0];
 
   const sendChargeOnWhatsapp = (charge: MPCharge | undefined, source: string, event: MouseEvent<HTMLButtonElement>) => {
-    console.log("WHATSAPP_BUTTON_CLICKED", { source, chargeId: charge?.id ?? null, disabled: event.currentTarget.disabled, pointerEvents: window.getComputedStyle(event.currentTarget).pointerEvents });
-    const popup = openWhatsappPopup(source);
+    console.log("WHATSAPP_BUTTON_CLICKED", { source, chargeId: charge?.id ?? null, disabled: event.currentTarget.disabled });
     try {
       if (!charge) throw new Error("Nenhuma cobrança válida para enviar.");
       const url = whatsappUrlForCharge(charge, participants, groupName);
-      sendWhatsappToPopup(popup, url, source);
+      openWhatsappDirect(url, source);
     } catch (error) {
-      logWhatsappFlowError(error, popup);
+      logWhatsappFlowError(error);
     }
   };
 
