@@ -60,10 +60,11 @@ function whatsappUrlForCharge(charge: MPCharge, participants: Participant[], gro
   return url;
 }
 
-function sendWhatsappToPopup(popup: Window | null, url: string) {
+function sendWhatsappToPopup(popup: Window | null, url: string, source: string) {
   if (!popup) throw new Error("Nova aba bloqueada pelo navegador. Libere pop-ups para abrir o WhatsApp.");
   popup.opener = null;
   popup.location.href = url;
+  console.log("WINDOW_OPEN_RESULT", { source, opened: true, assignedUrl: url });
 }
 
 function NewChargePage() {
@@ -144,7 +145,10 @@ function NewChargePage() {
           }),
         });
 
-        const json = await res.json().catch(() => ({}));
+        const json = await res.json().catch((error) => {
+          console.error("WHATSAPP_FLOW_ERROR", error);
+          return {};
+        });
         if (!res.ok) throw new Error(json?.error ?? `Erro HTTP ${res.status}`);
 
         const charges = (json.charges ?? []) as MPCharge[];
@@ -156,7 +160,7 @@ function NewChargePage() {
         const firstOkCharge = charges.find((charge) => !charge.error);
         if (firstOkCharge) {
           const url = whatsappUrlForCharge(firstOkCharge, participants, group.name);
-          sendWhatsappToPopup(pendingWhatsappPopup, url);
+          sendWhatsappToPopup(pendingWhatsappPopup, url, "submit_generate_charge");
           if (okCount > 1) toast.message(`Abrindo ${firstOkCharge.participant_name}. Use os botões abaixo para os outros ${okCount - 1}.`);
         } else {
           throw new Error("Nenhuma cobrança válida retornada para enviar no WhatsApp.");
@@ -325,7 +329,7 @@ function ChargesResultModal({ charges, participants, groupName, onClose }: { cha
     try {
       if (!charge) throw new Error("Nenhuma cobrança válida para enviar.");
       const url = whatsappUrlForCharge(charge, participants, groupName);
-      sendWhatsappToPopup(popup, url);
+      sendWhatsappToPopup(popup, url, source);
     } catch (error) {
       logWhatsappFlowError(error, popup);
     }
