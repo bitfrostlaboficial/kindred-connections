@@ -282,14 +282,8 @@ function ChargesResultModal({ charges, participants, groupName, onClose }: { cha
   const currentWaUrl = waUrls.get(c.id) ?? null;
   const firstWaUrl = firstOk ? waUrls.get(firstOk.id) ?? null : null;
 
-  const sendChargeOnWhatsapp = (url: string | null, source: string) => {
-    console.log("WHATSAPP_BUTTON_CLICKED", { source, hasUrl: Boolean(url) });
-    if (!url) {
-      toast.error("Link do WhatsApp indisponível. Use o link manual exibido na tela.");
-      return;
-    }
-    triggerAnchorClick(url);
-  };
+
+
 
   const copy = async (text: string | null) => {
     if (!text) return;
