@@ -34,7 +34,7 @@ function AuthPage() {
         const { error } = await supabase.auth.signUp({
           email,
           password,
-          options: { emailRedirectTo: window.location.origin + "/grupos", data: { full_name: name } },
+          options: { emailRedirectTo: window.location.origin + dest, data: { full_name: name } },
         });
         if (error) throw error;
         toast.success("Conta criada! Bora começar.");
@@ -42,7 +42,7 @@ function AuthPage() {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
       }
-      navigate({ to: "/grupos" });
+      navigate({ to: dest });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erro");
     } finally {
@@ -52,13 +52,13 @@ function AuthPage() {
 
   const handleGoogle = async () => {
     setLoading(true);
-    const result = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin + "/grupos" });
+    const result = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin + dest });
     if (result.error) {
       toast.error("Erro ao entrar com Google");
       setLoading(false);
       return;
     }
-    if (!result.redirected) navigate({ to: "/grupos" });
+    if (!result.redirected) navigate({ to: dest });
   };
 
   return (
