@@ -296,31 +296,28 @@ function ChargesResultModal({ charges, participants, groupName, onClose }: { cha
   const c = charges[idx];
   const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
   const phoneOf = (pid: string) => participants.find((p) => p.id === pid)?.phone ?? null;
-  const paymentUrlOf = (token: string) => `${typeof window !== "undefined" ? window.location.origin : ""}/pagar/${token}`;
-  const waLinkOf = (ch: MPCharge) => buildWaLink(phoneOf(ch.participant_id), buildChargeMessage({ name: ch.participant_name, groupName, amount: ch.amount, paymentUrl: paymentUrlOf(ch.public_token) }));
+  const waLinkOf = (ch: MPCharge) => {
+    try {
+      return whatsappUrlForCharge(ch, participants, groupName);
+    } catch {
+      return null;
+    }
+  };
 
   const okCharges = charges.filter((x) => !x.error);
   const firstOk = okCharges[0];
   const currentUrl = c.error ? null : waLinkOf(c);
   const firstUrl = firstOk ? waLinkOf(firstOk) : null;
 
-  const openWa = (url: string) => {
-    console.log("[WA] WHATSAPP_URL_CREATED", url);
+  const sendChargeOnWhatsapp = (charge: MPCharge | undefined, source: string, event: MouseEvent<HTMLButtonElement>) => {
+    console.log("WHATSAPP_BUTTON_CLICKED", { source, chargeId: charge?.id ?? null, disabled: event.currentTarget.disabled, pointerEvents: window.getComputedStyle(event.currentTarget).pointerEvents });
+    const popup = openWhatsappPopup(source);
     try {
-      const w = window.open(url, "_blank", "noopener,noreferrer");
-      if (w && !w.closed) {
-        console.log("[WA] WHATSAPP_WINDOW_OPEN ok");
-        return;
-      }
-    } catch (e) {
-      console.error("[WA] WHATSAPP_WINDOW_OPEN_ERROR", e);
-    }
-    // Iframe sem allow-popups (preview Lovable): navega a aba TOP para fora do iframe
-    try {
-      console.log("[WA] WHATSAPP_WINDOW_OPEN fallback top.location");
-      (window.top ?? window).location.href = url;
-    } catch {
-      window.location.href = url;
+      if (!charge) throw new Error("Nenhuma cobrança válida para enviar.");
+      const url = whatsappUrlForCharge(charge, participants, groupName);
+      sendWhatsappToPopup(popup, url);
+    } catch (error) {
+      logWhatsappFlowError(error, popup);
     }
   };
 
