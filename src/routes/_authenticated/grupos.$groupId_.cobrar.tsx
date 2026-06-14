@@ -273,6 +273,12 @@ function ChargesResultModal({ charges, participants, groupName, onClose }: { cha
     }
   };
 
+  const copy = async (text: string | null) => {
+    if (!text) return;
+    await navigator.clipboard.writeText(text);
+    toast.success("Pix copiado!");
+  };
+
 
 
   return (
