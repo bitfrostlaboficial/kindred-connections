@@ -110,8 +110,20 @@ function GroupDashboard() {
     ]);
     if (g.error || !g.data) { toast.error("Pelada não encontrada"); navigate({ to: "/grupos" }); return; }
     setGroup(g.data as Group);
-    setParticipants((p.data ?? []) as Participant[]);
+    const parts = (p.data ?? []) as Participant[];
+    setParticipants(parts);
     setCharges((c.data ?? []) as Charge[]);
+    const userIds = parts.map((x) => x.user_id).filter((u): u is string => !!u);
+    if (userIds.length) {
+      const { data: profs } = await supabase.from("profiles").select("id, full_name, avatar_url, preferred_position").in("id", userIds);
+      const map: Record<string, { full_name: string | null; avatar_url: string | null; preferred_position: string | null }> = {};
+      for (const r of (profs ?? []) as Array<{ id: string; full_name: string | null; avatar_url: string | null; preferred_position: string | null }>) {
+        map[r.id] = { full_name: r.full_name, avatar_url: r.avatar_url, preferred_position: r.preferred_position };
+      }
+      setProfiles(map);
+    } else {
+      setProfiles({});
+    }
     await loadFinance();
     setLoading(false);
   };
