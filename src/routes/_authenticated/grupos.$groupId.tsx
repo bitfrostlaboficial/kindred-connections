@@ -1,7 +1,8 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { List, MessageCircle, Trash2 } from "lucide-react";
+import { List, MessageCircle, Trash2, QrCode } from "lucide-react";
+import { PixColetivoDialog } from "@/components/pix-coletivo-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { buildWaLink, buildChargeMessage } from "@/lib/whatsapp";
@@ -40,6 +41,7 @@ function GroupDashboard() {
   const [charges, setCharges] = useState<Charge[]>([]);
   const [monthFilter, setMonthFilter] = useState<string>(() => new Date().toISOString().slice(0, 7));
   const [chargeToDelete, setChargeToDelete] = useState<Charge | null>(null);
+  const [showPixColetivo, setShowPixColetivo] = useState(false);
   const [ppc, setPpc] = useState<Record<ProviderId, PPCInfo | null>>({ mercado_pago: null, stripe: null });
   const [connecting, setConnecting] = useState(false);
   const [openModal, setOpenModal] = useState<ProviderId | null>(null);
