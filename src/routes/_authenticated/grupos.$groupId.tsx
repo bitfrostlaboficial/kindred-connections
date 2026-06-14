@@ -1,7 +1,8 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { List, MessageCircle, Trash2 } from "lucide-react";
+import { List, MessageCircle, Trash2, QrCode } from "lucide-react";
+import { PixColetivoDialog } from "@/components/pix-coletivo-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { buildWaLink, buildChargeMessage } from "@/lib/whatsapp";
@@ -40,6 +41,7 @@ function GroupDashboard() {
   const [charges, setCharges] = useState<Charge[]>([]);
   const [monthFilter, setMonthFilter] = useState<string>(() => new Date().toISOString().slice(0, 7));
   const [chargeToDelete, setChargeToDelete] = useState<Charge | null>(null);
+  const [showPixColetivo, setShowPixColetivo] = useState(false);
   const [ppc, setPpc] = useState<Record<ProviderId, PPCInfo | null>>({ mercado_pago: null, stripe: null });
   const [connecting, setConnecting] = useState(false);
   const [openModal, setOpenModal] = useState<ProviderId | null>(null);
@@ -254,7 +256,14 @@ function GroupDashboard() {
           <h1 className="font-display text-5xl md:text-6xl uppercase leading-none mt-2">{group.name}</h1>
           {group.description && <p className="font-serif italic text-sm text-faded mt-2">{group.description}</p>}
         </div>
-        <div className="flex items-center gap-2 self-start">
+        <div className="flex items-center gap-2 self-start flex-wrap">
+          <button
+            type="button"
+            onClick={() => setShowPixColetivo(true)}
+            className="border-2 border-ink px-4 py-3 font-display text-base tracking-wide hover:bg-ink hover:text-paper transition-colors inline-flex items-center gap-2"
+          >
+            <QrCode className="size-4" /> PIX COLETIVO
+          </button>
           <Link
             to="/grupos/$groupId/conferencia"
             params={{ groupId }}
@@ -578,6 +587,14 @@ function GroupDashboard() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <PixColetivoDialog
+        open={showPixColetivo}
+        onClose={() => setShowPixColetivo(false)}
+        groupName={group.name}
+        pixKey={group.pix_key}
+        pixRecipientName={group.pix_recipient_name}
+      />
     </main>
   );
 }
