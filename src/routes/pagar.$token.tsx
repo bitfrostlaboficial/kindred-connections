@@ -239,13 +239,6 @@ function CardPanel({
     );
   }
 
-  if (canTryStripe) {
-    return (
-      <div className="border-2 border-ink/10 p-4 text-sm font-serif italic text-faded text-center">
-        Pagamento com cartão via Stripe será habilitado em breve. Use Pix por enquanto.
-      </div>
-    );
-  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
