@@ -45,7 +45,7 @@ function NewChargePage() {
     return d.toISOString().slice(0, 10);
   });
   const [saving, setSaving] = useState(false);
-  const [provider, setProvider] = useState<ProviderId>("mercado_pago");
+  const [mpConfigured, setMpConfigured] = useState(false);
   const [results, setResults] = useState<MPCharge[] | null>(null);
 
   useEffect(() => {
