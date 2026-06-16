@@ -183,7 +183,7 @@ function GroupDashboard() {
     }
     setPpc(next);
   };
-  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [groupId]);
+  useEffect(() => { load(); loadJoinRequests(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [groupId]);
   useEffect(() => {
     if (search.mp_connected === "1") {
       toast.success("Mercado Pago conectado!");
