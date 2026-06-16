@@ -17,12 +17,19 @@ function AuthenticatedLayout() {
   const navigate = useNavigate();
   const router = useRouter();
   const [fullName, setFullName] = useState<string>("");
+  const [nickname, setNickname] = useState<string>("");
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle().then(({ data }) => {
-      if (data?.full_name) setFullName(data.full_name);
+    supabase.from("profiles").select("full_name,nickname,avatar_url").eq("id", user.id).maybeSingle().then(({ data }) => {
+      if (!data) return;
+      setFullName(data.full_name ?? "");
+      setNickname((data as any).nickname ?? "");
+      setAvatarUrl((data as any).avatar_url ?? null);
     });
   }, [user.id]);
+
+  const display = nickname.trim() || fullName || "organizador";
 
   const signOut = async () => {
     await supabase.auth.signOut();
@@ -42,8 +49,15 @@ function AuthenticatedLayout() {
             <Link to="/grupos" className="text-xs font-bold uppercase tracking-widest text-faded hover:text-ink hidden sm:inline" activeProps={{ className: "text-xs font-bold uppercase tracking-widest text-ink hidden sm:inline" }}>Organizo</Link>
             <Link to="/minhas-peladas" className="text-xs font-bold uppercase tracking-widest text-faded hover:text-ink" activeProps={{ className: "text-xs font-bold uppercase tracking-widest text-ink" }}>Participo</Link>
             <Link to="/pagamentos" className="text-xs font-bold uppercase tracking-widest text-faded hover:text-ink hidden sm:inline" activeProps={{ className: "text-xs font-bold uppercase tracking-widest text-ink hidden sm:inline" }}>Pagamentos</Link>
-            <Link to="/perfil" className="text-xs font-bold uppercase tracking-widest text-faded hover:text-ink" activeProps={{ className: "text-xs font-bold uppercase tracking-widest text-ink" }}>Perfil</Link>
-            <span className="font-serif italic text-sm text-faded hidden md:inline">Olá, {fullName || "organizador"}</span>
+            <Link to="/perfil" className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-faded hover:text-ink" activeProps={{ className: "flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-ink" }}>
+              {avatarUrl ? (
+                <img src={avatarUrl} alt={display} className="size-7 rounded-full object-cover border border-ink/15" />
+              ) : (
+                <div className="size-7 rounded-full bg-pitch text-paper flex items-center justify-center font-display text-xs">{display.charAt(0).toUpperCase()}</div>
+              )}
+              <span className="hidden sm:inline">Perfil</span>
+            </Link>
+            <span className="font-serif italic text-sm text-faded hidden md:inline">Olá, {display}</span>
             <button onClick={signOut} className="text-xs font-bold uppercase tracking-widest hover:text-destructive">Sair</button>
           </div>
         </div>
