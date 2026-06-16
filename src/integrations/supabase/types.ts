@@ -113,6 +113,110 @@ export type Database = {
           },
         ]
       }
+      fields: {
+        Row: {
+          address: string | null
+          created_at: string
+          created_by: string | null
+          group_id: string
+          id: string
+          maps_url: string | null
+          name: string
+          notes: string | null
+          photo_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          created_by?: string | null
+          group_id: string
+          id?: string
+          maps_url?: string | null
+          name: string
+          notes?: string | null
+          photo_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          created_by?: string | null
+          group_id?: string
+          id?: string
+          maps_url?: string | null
+          name?: string
+          notes?: string | null
+          photo_url?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fields_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      group_games: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          duration_minutes: number | null
+          field_id: string | null
+          group_id: string
+          id: string
+          notes: string | null
+          scheduled_at: string
+          status: string
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          duration_minutes?: number | null
+          field_id?: string | null
+          group_id: string
+          id?: string
+          notes?: string | null
+          scheduled_at: string
+          status?: string
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          duration_minutes?: number | null
+          field_id?: string | null
+          group_id?: string
+          id?: string
+          notes?: string | null
+          scheduled_at?: string
+          status?: string
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_games_field_id_fkey"
+            columns: ["field_id"]
+            isOneToOne: false
+            referencedRelation: "fields"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_games_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       group_join_requests: {
         Row: {
           created_at: string
@@ -191,6 +295,7 @@ export type Database = {
       }
       groups: {
         Row: {
+          cover_image_url: string | null
           created_at: string
           created_by: string
           default_monthly_fee: number | null
@@ -207,6 +312,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          cover_image_url?: string | null
           created_at?: string
           created_by: string
           default_monthly_fee?: number | null
@@ -223,6 +329,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          cover_image_url?: string | null
           created_at?: string
           created_by?: string
           default_monthly_fee?: number | null
