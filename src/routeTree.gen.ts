@@ -21,6 +21,7 @@ import { Route as AuthenticatedMinhasPeladasRouteImport } from './routes/_authen
 import { Route as AuthenticatedMinhasCobrancasRouteImport } from './routes/_authenticated/minhas-cobrancas'
 import { Route as AuthenticatedGruposRouteImport } from './routes/_authenticated/grupos'
 import { Route as AuthenticatedGruposIndexRouteImport } from './routes/_authenticated/grupos.index'
+import { Route as AuthenticatedMinhasPeladasGroupIdRouteImport } from './routes/_authenticated/minhas-peladas.$groupId'
 import { Route as AuthenticatedGruposGroupIdRouteImport } from './routes/_authenticated/grupos.$groupId'
 import { Route as ApiPublicWebhooksStripeRouteImport } from './routes/api/public/webhooks/stripe'
 import { Route as ApiPublicWebhooksMercadopagoRouteImport } from './routes/api/public/webhooks/mercadopago'
@@ -92,6 +93,12 @@ const AuthenticatedGruposIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedGruposRoute,
   } as any)
+const AuthenticatedMinhasPeladasGroupIdRoute =
+  AuthenticatedMinhasPeladasGroupIdRouteImport.update({
+    id: '/$groupId',
+    path: '/$groupId',
+    getParentRoute: () => AuthenticatedMinhasPeladasRoute,
+  } as any)
 const AuthenticatedGruposGroupIdRoute =
   AuthenticatedGruposGroupIdRouteImport.update({
     id: '/$groupId',
@@ -145,13 +152,14 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/grupos': typeof AuthenticatedGruposRouteWithChildren
   '/minhas-cobrancas': typeof AuthenticatedMinhasCobrancasRoute
-  '/minhas-peladas': typeof AuthenticatedMinhasPeladasRoute
+  '/minhas-peladas': typeof AuthenticatedMinhasPeladasRouteWithChildren
   '/pagamentos': typeof AuthenticatedPagamentosRoute
   '/perfil': typeof AuthenticatedPerfilRoute
   '/api/charges': typeof ApiChargesRoute
   '/entrar/$token': typeof EntrarTokenRoute
   '/pagar/$token': typeof PagarTokenRoute
   '/grupos/$groupId': typeof AuthenticatedGruposGroupIdRoute
+  '/minhas-peladas/$groupId': typeof AuthenticatedMinhasPeladasGroupIdRoute
   '/grupos/': typeof AuthenticatedGruposIndexRoute
   '/grupos/$groupId/cobrar': typeof AuthenticatedGruposGroupIdCobrarRoute
   '/grupos/$groupId/conferencia': typeof AuthenticatedGruposGroupIdConferenciaRoute
@@ -165,13 +173,14 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/minhas-cobrancas': typeof AuthenticatedMinhasCobrancasRoute
-  '/minhas-peladas': typeof AuthenticatedMinhasPeladasRoute
+  '/minhas-peladas': typeof AuthenticatedMinhasPeladasRouteWithChildren
   '/pagamentos': typeof AuthenticatedPagamentosRoute
   '/perfil': typeof AuthenticatedPerfilRoute
   '/api/charges': typeof ApiChargesRoute
   '/entrar/$token': typeof EntrarTokenRoute
   '/pagar/$token': typeof PagarTokenRoute
   '/grupos/$groupId': typeof AuthenticatedGruposGroupIdRoute
+  '/minhas-peladas/$groupId': typeof AuthenticatedMinhasPeladasGroupIdRoute
   '/grupos': typeof AuthenticatedGruposIndexRoute
   '/grupos/$groupId/cobrar': typeof AuthenticatedGruposGroupIdCobrarRoute
   '/grupos/$groupId/conferencia': typeof AuthenticatedGruposGroupIdConferenciaRoute
@@ -188,13 +197,14 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/_authenticated/grupos': typeof AuthenticatedGruposRouteWithChildren
   '/_authenticated/minhas-cobrancas': typeof AuthenticatedMinhasCobrancasRoute
-  '/_authenticated/minhas-peladas': typeof AuthenticatedMinhasPeladasRoute
+  '/_authenticated/minhas-peladas': typeof AuthenticatedMinhasPeladasRouteWithChildren
   '/_authenticated/pagamentos': typeof AuthenticatedPagamentosRoute
   '/_authenticated/perfil': typeof AuthenticatedPerfilRoute
   '/api/charges': typeof ApiChargesRoute
   '/entrar/$token': typeof EntrarTokenRoute
   '/pagar/$token': typeof PagarTokenRoute
   '/_authenticated/grupos/$groupId': typeof AuthenticatedGruposGroupIdRoute
+  '/_authenticated/minhas-peladas/$groupId': typeof AuthenticatedMinhasPeladasGroupIdRoute
   '/_authenticated/grupos/': typeof AuthenticatedGruposIndexRoute
   '/_authenticated/grupos/$groupId_/cobrar': typeof AuthenticatedGruposGroupIdCobrarRoute
   '/_authenticated/grupos/$groupId_/conferencia': typeof AuthenticatedGruposGroupIdConferenciaRoute
@@ -218,6 +228,7 @@ export interface FileRouteTypes {
     | '/entrar/$token'
     | '/pagar/$token'
     | '/grupos/$groupId'
+    | '/minhas-peladas/$groupId'
     | '/grupos/'
     | '/grupos/$groupId/cobrar'
     | '/grupos/$groupId/conferencia'
@@ -238,6 +249,7 @@ export interface FileRouteTypes {
     | '/entrar/$token'
     | '/pagar/$token'
     | '/grupos/$groupId'
+    | '/minhas-peladas/$groupId'
     | '/grupos'
     | '/grupos/$groupId/cobrar'
     | '/grupos/$groupId/conferencia'
@@ -260,6 +272,7 @@ export interface FileRouteTypes {
     | '/entrar/$token'
     | '/pagar/$token'
     | '/_authenticated/grupos/$groupId'
+    | '/_authenticated/minhas-peladas/$groupId'
     | '/_authenticated/grupos/'
     | '/_authenticated/grupos/$groupId_/cobrar'
     | '/_authenticated/grupos/$groupId_/conferencia'
@@ -369,6 +382,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedGruposIndexRouteImport
       parentRoute: typeof AuthenticatedGruposRoute
     }
+    '/_authenticated/minhas-peladas/$groupId': {
+      id: '/_authenticated/minhas-peladas/$groupId'
+      path: '/$groupId'
+      fullPath: '/minhas-peladas/$groupId'
+      preLoaderRoute: typeof AuthenticatedMinhasPeladasGroupIdRouteImport
+      parentRoute: typeof AuthenticatedMinhasPeladasRoute
+    }
     '/_authenticated/grupos/$groupId': {
       id: '/_authenticated/grupos/$groupId'
       path: '/$groupId'
@@ -448,10 +468,25 @@ const AuthenticatedGruposRouteChildren: AuthenticatedGruposRouteChildren = {
 const AuthenticatedGruposRouteWithChildren =
   AuthenticatedGruposRoute._addFileChildren(AuthenticatedGruposRouteChildren)
 
+interface AuthenticatedMinhasPeladasRouteChildren {
+  AuthenticatedMinhasPeladasGroupIdRoute: typeof AuthenticatedMinhasPeladasGroupIdRoute
+}
+
+const AuthenticatedMinhasPeladasRouteChildren: AuthenticatedMinhasPeladasRouteChildren =
+  {
+    AuthenticatedMinhasPeladasGroupIdRoute:
+      AuthenticatedMinhasPeladasGroupIdRoute,
+  }
+
+const AuthenticatedMinhasPeladasRouteWithChildren =
+  AuthenticatedMinhasPeladasRoute._addFileChildren(
+    AuthenticatedMinhasPeladasRouteChildren,
+  )
+
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedGruposRoute: typeof AuthenticatedGruposRouteWithChildren
   AuthenticatedMinhasCobrancasRoute: typeof AuthenticatedMinhasCobrancasRoute
-  AuthenticatedMinhasPeladasRoute: typeof AuthenticatedMinhasPeladasRoute
+  AuthenticatedMinhasPeladasRoute: typeof AuthenticatedMinhasPeladasRouteWithChildren
   AuthenticatedPagamentosRoute: typeof AuthenticatedPagamentosRoute
   AuthenticatedPerfilRoute: typeof AuthenticatedPerfilRoute
 }
@@ -459,7 +494,7 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedGruposRoute: AuthenticatedGruposRouteWithChildren,
   AuthenticatedMinhasCobrancasRoute: AuthenticatedMinhasCobrancasRoute,
-  AuthenticatedMinhasPeladasRoute: AuthenticatedMinhasPeladasRoute,
+  AuthenticatedMinhasPeladasRoute: AuthenticatedMinhasPeladasRouteWithChildren,
   AuthenticatedPagamentosRoute: AuthenticatedPagamentosRoute,
   AuthenticatedPerfilRoute: AuthenticatedPerfilRoute,
 }
@@ -482,13 +517,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
