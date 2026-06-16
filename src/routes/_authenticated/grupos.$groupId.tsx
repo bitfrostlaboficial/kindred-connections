@@ -579,6 +579,83 @@ function GroupDashboard() {
           </div>
 
           <div className="border-2 border-ink bg-white p-6 space-y-4">
+            <h4 className="font-display text-xl uppercase">Permissões de Ingresso</h4>
+            <p className="text-[10px] text-faded">Como jogadores entram nesta pelada pelo link de convite.</p>
+            <div className="space-y-1.5">
+              {[
+                { v: "public", label: "Pública", hint: "Qualquer pessoa com o link entra direto." },
+                { v: "approval", label: "Aprovação", hint: "Cada solicitação precisa do seu sim." },
+                { v: "invite_only", label: "Somente convite", hint: "Apenas jogadores adicionados por você." },
+              ].map((opt) => (
+                <label key={opt.v} className={`flex items-start gap-2 p-2 border cursor-pointer ${group.join_mode === opt.v ? "border-pitch bg-pitch/5" : "border-ink/15"}`}>
+                  <input type="radio" name="join_mode" className="mt-1" disabled={savingPerm}
+                    checked={group.join_mode === opt.v}
+                    onChange={() => saveGroupSettings({ join_mode: opt.v })} />
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-widest">{opt.label}</p>
+                    <p className="text-[10px] text-faded">{opt.hint}</p>
+                  </div>
+                </label>
+              ))}
+            </div>
+
+            <div className="pt-3 border-t border-ink/10 space-y-2">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-faded">Acesso ao Grupo (WhatsApp, Telegram, Discord)</p>
+              <input
+                type="url"
+                defaultValue={group.group_link ?? ""}
+                placeholder="https://chat.whatsapp.com/..."
+                onBlur={(e) => { const v = e.target.value.trim() || null; if (v !== (group.group_link ?? null)) saveGroupSettings({ group_link: v }); }}
+                className="w-full border border-ink/20 px-2 py-1.5 text-xs bg-white"
+              />
+              <input
+                type="text"
+                defaultValue={group.group_link_label ?? ""}
+                placeholder="Rótulo do botão (opcional)"
+                onBlur={(e) => { const v = e.target.value.trim() || null; if (v !== (group.group_link_label ?? null)) saveGroupSettings({ group_link_label: v }); }}
+                className="w-full border border-ink/20 px-2 py-1.5 text-xs bg-white"
+              />
+              <select
+                value={group.group_link_access}
+                onChange={(e) => saveGroupSettings({ group_link_access: e.target.value })}
+                className="w-full border border-ink/20 px-2 py-1.5 text-xs bg-white"
+              >
+                <option value="public">Visível para todos jogadores</option>
+                <option value="approval">Apenas jogadores aprovados</option>
+                <option value="private">Privado (não exibir)</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="border-2 border-ink bg-white p-6 space-y-3">
+            <div className="flex items-center justify-between">
+              <h4 className="font-display text-xl uppercase">Solicitações</h4>
+              <span className="text-[10px] font-bold uppercase tracking-widest bg-canarinho text-ink px-2 py-0.5">{joinRequests.length}</span>
+            </div>
+            {joinRequests.length === 0 ? (
+              <p className="text-[11px] font-serif italic text-faded">Nenhuma solicitação pendente.</p>
+            ) : (
+              <ul className="space-y-2">
+                {joinRequests.map((r) => (
+                  <li key={r.id} className="flex items-center justify-between gap-2 border border-ink/15 p-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="size-8 rounded-full bg-paper border border-ink/15 flex items-center justify-center font-display text-xs uppercase overflow-hidden shrink-0">
+                        {r.profile?.avatar_url ? <img src={r.profile.avatar_url} alt="" className="size-full object-cover" /> : (r.profile?.full_name?.[0] ?? "?")}
+                      </div>
+                      <p className="text-xs truncate">{r.profile?.full_name ?? "Jogador"}</p>
+                    </div>
+                    <div className="flex gap-1 shrink-0">
+                      <button onClick={() => reviewRequest(r.id, true)} className="px-2 py-1 text-[10px] font-bold uppercase tracking-widest bg-pitch text-paper">Aprovar</button>
+                      <button onClick={() => reviewRequest(r.id, false)} className="px-2 py-1 text-[10px] font-bold uppercase tracking-widest border border-destructive text-destructive">Recusar</button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+
+          <div className="border-2 border-ink bg-white p-6 space-y-4">
             <h4 className="font-display text-xl uppercase">Configurações Financeiras</h4>
             <p className="text-[10px] text-faded">Conecte a conta do organizador em cada gateway. O dinheiro vai direto pra essa conta — a plataforma não toca no valor.</p>
 
