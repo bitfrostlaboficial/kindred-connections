@@ -474,6 +474,22 @@ export type Database = {
           participant_id: string
         }[]
       }
+      request_join_by_token: {
+        Args: { _token: string }
+        Returns: {
+          group_id: string
+          participant_id: string
+          request_id: string
+          status: string
+        }[]
+      }
+      review_join_request: {
+        Args: { _approve: boolean; _request_id: string }
+        Returns: {
+          participant_id: string
+          status: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

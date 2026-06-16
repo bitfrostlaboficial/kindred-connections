@@ -29,7 +29,8 @@ export const Route = createFileRoute("/_authenticated/grupos/$groupId")({
   component: GroupDashboard,
 });
 
-type Group = { id: string; name: string; description: string | null; default_monthly_fee: number | null; pix_key: string | null; pix_recipient_name: string | null; invite_token: string | null };
+type Group = { id: string; name: string; description: string | null; default_monthly_fee: number | null; pix_key: string | null; pix_recipient_name: string | null; invite_token: string | null; join_mode: string; group_link: string | null; group_link_label: string | null; group_link_access: string };
+type JoinRequest = { id: string; user_id: string; status: string; requested_at: string; profile?: { full_name: string | null; avatar_url: string | null } | null };
 type Participant = { id: string; name: string; position: string | null; jersey_number: number | null; type: "mensalista" | "avulso"; is_active: boolean; phone: string | null; user_id: string | null };
 type Charge = { id: string; participant_id: string; description: string; amount: number; due_date: string; status: "pendente" | "pago" | "vencido" | "cancelado"; paid_at: string | null; public_token: string; created_at: string };
 type PPCInfo = { payment_account_id: string | null; account?: { id: string; account_label: string | null; external_user_id: string | null; is_active: boolean; expires_at: string | null; updated_at: string } | null };
@@ -67,6 +68,42 @@ function GroupDashboard() {
   const [eSaving, setESaving] = useState(false);
   const [viewing, setViewing] = useState<Participant | null>(null);
   const [profiles, setProfiles] = useState<Record<string, { full_name: string | null; avatar_url: string | null; preferred_position: string | null }>>({});
+  const [joinRequests, setJoinRequests] = useState<JoinRequest[]>([]);
+  const [savingPerm, setSavingPerm] = useState(false);
+
+  const loadJoinRequests = async () => {
+    const { data } = await supabase
+      .from("group_join_requests")
+      .select("id,user_id,status,requested_at")
+      .eq("group_id", groupId)
+      .eq("status", "pending")
+      .order("requested_at", { ascending: false });
+    const reqs = (data ?? []) as JoinRequest[];
+    const uids = reqs.map((r) => r.user_id);
+    if (uids.length) {
+      const { data: profs } = await supabase.from("profiles").select("id,full_name,avatar_url").in("id", uids);
+      const map = new Map<string, { full_name: string | null; avatar_url: string | null }>();
+      for (const p of (profs ?? []) as any[]) map.set(p.id, { full_name: p.full_name, avatar_url: p.avatar_url });
+      reqs.forEach((r) => { r.profile = map.get(r.user_id) ?? null; });
+    }
+    setJoinRequests(reqs);
+  };
+
+  const reviewRequest = async (id: string, approve: boolean) => {
+    const { error } = await supabase.rpc("review_join_request", { _request_id: id, _approve: approve });
+    if (error) return toast.error(error.message);
+    toast.success(approve ? "Jogador aprovado" : "Solicitação recusada");
+    await Promise.all([loadJoinRequests(), load()]);
+  };
+
+  const saveGroupSettings = async (patch: Partial<Group>) => {
+    setSavingPerm(true);
+    const { error } = await supabase.from("groups").update(patch as any).eq("id", groupId);
+    setSavingPerm(false);
+    if (error) return toast.error(error.message);
+    setGroup((g) => g ? { ...g, ...patch } as Group : g);
+    toast.success("Configurações atualizadas");
+  };
 
   const startEdit = (p: Participant) => {
     setEditingId(p.id);
@@ -146,7 +183,7 @@ function GroupDashboard() {
     }
     setPpc(next);
   };
-  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [groupId]);
+  useEffect(() => { load(); loadJoinRequests(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [groupId]);
   useEffect(() => {
     if (search.mp_connected === "1") {
       toast.success("Mercado Pago conectado!");
@@ -540,6 +577,83 @@ function GroupDashboard() {
               </button>
             )}
           </div>
+
+          <div className="border-2 border-ink bg-white p-6 space-y-4">
+            <h4 className="font-display text-xl uppercase">Permissões de Ingresso</h4>
+            <p className="text-[10px] text-faded">Como jogadores entram nesta pelada pelo link de convite.</p>
+            <div className="space-y-1.5">
+              {[
+                { v: "public", label: "Pública", hint: "Qualquer pessoa com o link entra direto." },
+                { v: "approval", label: "Aprovação", hint: "Cada solicitação precisa do seu sim." },
+                { v: "invite_only", label: "Somente convite", hint: "Apenas jogadores adicionados por você." },
+              ].map((opt) => (
+                <label key={opt.v} className={`flex items-start gap-2 p-2 border cursor-pointer ${group.join_mode === opt.v ? "border-pitch bg-pitch/5" : "border-ink/15"}`}>
+                  <input type="radio" name="join_mode" className="mt-1" disabled={savingPerm}
+                    checked={group.join_mode === opt.v}
+                    onChange={() => saveGroupSettings({ join_mode: opt.v })} />
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-widest">{opt.label}</p>
+                    <p className="text-[10px] text-faded">{opt.hint}</p>
+                  </div>
+                </label>
+              ))}
+            </div>
+
+            <div className="pt-3 border-t border-ink/10 space-y-2">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-faded">Acesso ao Grupo (WhatsApp, Telegram, Discord)</p>
+              <input
+                type="url"
+                defaultValue={group.group_link ?? ""}
+                placeholder="https://chat.whatsapp.com/..."
+                onBlur={(e) => { const v = e.target.value.trim() || null; if (v !== (group.group_link ?? null)) saveGroupSettings({ group_link: v }); }}
+                className="w-full border border-ink/20 px-2 py-1.5 text-xs bg-white"
+              />
+              <input
+                type="text"
+                defaultValue={group.group_link_label ?? ""}
+                placeholder="Rótulo do botão (opcional)"
+                onBlur={(e) => { const v = e.target.value.trim() || null; if (v !== (group.group_link_label ?? null)) saveGroupSettings({ group_link_label: v }); }}
+                className="w-full border border-ink/20 px-2 py-1.5 text-xs bg-white"
+              />
+              <select
+                value={group.group_link_access}
+                onChange={(e) => saveGroupSettings({ group_link_access: e.target.value })}
+                className="w-full border border-ink/20 px-2 py-1.5 text-xs bg-white"
+              >
+                <option value="public">Visível para todos jogadores</option>
+                <option value="approval">Apenas jogadores aprovados</option>
+                <option value="private">Privado (não exibir)</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="border-2 border-ink bg-white p-6 space-y-3">
+            <div className="flex items-center justify-between">
+              <h4 className="font-display text-xl uppercase">Solicitações</h4>
+              <span className="text-[10px] font-bold uppercase tracking-widest bg-canarinho text-ink px-2 py-0.5">{joinRequests.length}</span>
+            </div>
+            {joinRequests.length === 0 ? (
+              <p className="text-[11px] font-serif italic text-faded">Nenhuma solicitação pendente.</p>
+            ) : (
+              <ul className="space-y-2">
+                {joinRequests.map((r) => (
+                  <li key={r.id} className="flex items-center justify-between gap-2 border border-ink/15 p-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="size-8 rounded-full bg-paper border border-ink/15 flex items-center justify-center font-display text-xs uppercase overflow-hidden shrink-0">
+                        {r.profile?.avatar_url ? <img src={r.profile.avatar_url} alt="" className="size-full object-cover" /> : (r.profile?.full_name?.[0] ?? "?")}
+                      </div>
+                      <p className="text-xs truncate">{r.profile?.full_name ?? "Jogador"}</p>
+                    </div>
+                    <div className="flex gap-1 shrink-0">
+                      <button onClick={() => reviewRequest(r.id, true)} className="px-2 py-1 text-[10px] font-bold uppercase tracking-widest bg-pitch text-paper">Aprovar</button>
+                      <button onClick={() => reviewRequest(r.id, false)} className="px-2 py-1 text-[10px] font-bold uppercase tracking-widest border border-destructive text-destructive">Recusar</button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
 
           <div className="border-2 border-ink bg-white p-6 space-y-4">
             <h4 className="font-display text-xl uppercase">Configurações Financeiras</h4>
