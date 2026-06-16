@@ -1,11 +1,18 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useMatches } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_authenticated/minhas-peladas")({
   head: () => ({ meta: [{ title: "Minhas peladas — Peladeiro" }] }),
-  component: MinhasPeladas,
+  component: MinhasPeladasLayout,
 });
+
+function MinhasPeladasLayout() {
+  const matches = useMatches();
+  const hasChild = matches.some((m) => m.routeId !== "/_authenticated/minhas-peladas" && m.routeId.startsWith("/_authenticated/minhas-peladas"));
+  if (hasChild) return <Outlet />;
+  return <MinhasPeladas />;
+}
 
 type Row = { id: string; name: string; description: string | null; participant_id: string };
 
@@ -49,8 +56,8 @@ function MinhasPeladas() {
                 <p className="font-display text-2xl uppercase">{r.name}</p>
                 {r.description && <p className="font-serif italic text-sm text-faded">{r.description}</p>}
               </div>
-              <Link to="/minhas-cobrancas" search={{ groupId: r.id } as any} className="text-xs font-bold uppercase tracking-widest border-2 border-ink px-3 py-2 hover:bg-ink hover:text-paper">
-                Cobranças
+              <Link to="/minhas-peladas/$groupId" params={{ groupId: r.id }} className="text-xs font-bold uppercase tracking-widest border-2 border-ink px-3 py-2 hover:bg-ink hover:text-paper">
+                Abrir
               </Link>
             </li>
           ))}
