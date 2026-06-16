@@ -56,8 +56,8 @@ function MinhasPeladas() {
                 <p className="font-display text-2xl uppercase">{r.name}</p>
                 {r.description && <p className="font-serif italic text-sm text-faded">{r.description}</p>}
               </div>
-              <Link to="/minhas-cobrancas" search={{ groupId: r.id } as any} className="text-xs font-bold uppercase tracking-widest border-2 border-ink px-3 py-2 hover:bg-ink hover:text-paper">
-                Cobranças
+              <Link to="/minhas-peladas/$groupId" params={{ groupId: r.id }} className="text-xs font-bold uppercase tracking-widest border-2 border-ink px-3 py-2 hover:bg-ink hover:text-paper">
+                Abrir
               </Link>
             </li>
           ))}
