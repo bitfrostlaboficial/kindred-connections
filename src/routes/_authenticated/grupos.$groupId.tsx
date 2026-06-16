@@ -68,6 +68,42 @@ function GroupDashboard() {
   const [eSaving, setESaving] = useState(false);
   const [viewing, setViewing] = useState<Participant | null>(null);
   const [profiles, setProfiles] = useState<Record<string, { full_name: string | null; avatar_url: string | null; preferred_position: string | null }>>({});
+  const [joinRequests, setJoinRequests] = useState<JoinRequest[]>([]);
+  const [savingPerm, setSavingPerm] = useState(false);
+
+  const loadJoinRequests = async () => {
+    const { data } = await supabase
+      .from("group_join_requests")
+      .select("id,user_id,status,requested_at")
+      .eq("group_id", groupId)
+      .eq("status", "pending")
+      .order("requested_at", { ascending: false });
+    const reqs = (data ?? []) as JoinRequest[];
+    const uids = reqs.map((r) => r.user_id);
+    if (uids.length) {
+      const { data: profs } = await supabase.from("profiles").select("id,full_name,avatar_url").in("id", uids);
+      const map = new Map<string, { full_name: string | null; avatar_url: string | null }>();
+      for (const p of (profs ?? []) as any[]) map.set(p.id, { full_name: p.full_name, avatar_url: p.avatar_url });
+      reqs.forEach((r) => { r.profile = map.get(r.user_id) ?? null; });
+    }
+    setJoinRequests(reqs);
+  };
+
+  const reviewRequest = async (id: string, approve: boolean) => {
+    const { error } = await supabase.rpc("review_join_request", { _request_id: id, _approve: approve });
+    if (error) return toast.error(error.message);
+    toast.success(approve ? "Jogador aprovado" : "Solicitação recusada");
+    await Promise.all([loadJoinRequests(), load()]);
+  };
+
+  const saveGroupSettings = async (patch: Partial<Group>) => {
+    setSavingPerm(true);
+    const { error } = await supabase.from("groups").update(patch as any).eq("id", groupId);
+    setSavingPerm(false);
+    if (error) return toast.error(error.message);
+    setGroup((g) => g ? { ...g, ...patch } as Group : g);
+    toast.success("Configurações atualizadas");
+  };
 
   const startEdit = (p: Participant) => {
     setEditingId(p.id);
