@@ -5,6 +5,7 @@ import { List, MessageCircle, Trash2, QrCode, Eye } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { PixColetivoDialog } from "@/components/pix-coletivo-dialog";
 import { AssistenteCobrancas } from "@/components/assistente-cobrancas";
+import { PeladaSetup } from "@/components/pelada-setup";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { buildWaLink, buildChargeMessage } from "@/lib/whatsapp";
@@ -29,7 +30,7 @@ export const Route = createFileRoute("/_authenticated/grupos/$groupId")({
   component: GroupDashboard,
 });
 
-type Group = { id: string; name: string; description: string | null; default_monthly_fee: number | null; pix_key: string | null; pix_recipient_name: string | null; invite_token: string | null; join_mode: string; group_link: string | null; group_link_label: string | null; group_link_access: string };
+type Group = { id: string; name: string; description: string | null; default_monthly_fee: number | null; pix_key: string | null; pix_recipient_name: string | null; invite_token: string | null; join_mode: string; group_link: string | null; group_link_label: string | null; group_link_access: string; cover_image_url: string | null };
 type JoinRequest = { id: string; user_id: string; status: string; requested_at: string; profile?: { full_name: string | null; avatar_url: string | null } | null };
 type Participant = { id: string; name: string; position: string | null; jersey_number: number | null; type: "mensalista" | "avulso"; is_active: boolean; phone: string | null; user_id: string | null };
 type Charge = { id: string; participant_id: string; description: string; amount: number; due_date: string; status: "pendente" | "pago" | "vencido" | "cancelado"; paid_at: string | null; public_token: string; created_at: string };
@@ -653,6 +654,14 @@ function GroupDashboard() {
               </ul>
             )}
           </div>
+
+          <PeladaSetup
+            groupId={groupId}
+            coverUrl={group.cover_image_url}
+            onCoverChange={(url) => setGroup((g) => g ? { ...g, cover_image_url: url } : g)}
+          />
+
+
 
 
           <div className="border-2 border-ink bg-white p-6 space-y-4">
